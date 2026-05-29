@@ -1,0 +1,3251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#122518">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PecuárIA — Gestão inteligente de rebanho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --forest:#0e1f13;--green:#1E4230;--leaf:#2D6B45;--leaf-light:#3D8A5A;
+  --gold:#C8973D;--gold-light:#E8B85A;--cream:#F7F2E8;--cream-dark:#EDE5D5;
+  --bg:#EDE8DB;--card:#FFFFFF;--text:#1B2B1F;--text-mid:#4A6355;--text-light:#7A9A85;
+  --border:#D4C9B0;--amber:#E67E22;--red:#C0392B;--blue:#1F6A9A;
+  --shadow:0 2px 16px rgba(18,37,24,.09);--shadow-md:0 4px 24px rgba(18,37,24,.13);--shadow-lg:0 8px 40px rgba(18,37,24,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--leaf-light);border-radius:5px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes twinkle{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
+.fadeUp{animation:fadeUp .35s ease both}
+
+/* ─── LOGIN ──────────────────────────────────── */
+#loginScreen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--forest)}
+#loginBg{position:absolute;inset:0;width:100%;height:100%}
+.login-wrap{position:relative;z-index:2;width:100%;max-width:420px;padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:20px;max-height:100dvh;overflow-y:auto}
+.login-logo{text-align:center;animation:fadeUp .6s ease}
+.login-logo h1{font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:var(--cream);letter-spacing:-1px;line-height:1}
+.login-logo h1 span{color:var(--gold)}
+.login-logo p{color:rgba(247,242,232,.45);font-size:12px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-top:8px}
+.login-card{background:rgba(255,255,255,.96);border-radius:26px;padding:32px 28px;width:100%;box-shadow:0 28px 72px rgba(0,0,0,.32);animation:fadeUp .7s ease .1s both}
+.login-card h2{font-family:'Playfair Display',serif;font-size:23px;color:var(--green);margin-bottom:24px;text-align:center}
+.fg{margin-bottom:15px}
+.fg label{display:block;font-size:11px;font-weight:800;color:var(--text-mid);letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px}
+.fg input{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);background:var(--cream);outline:none;transition:all .2s}
+.fg input:focus{border-color:var(--leaf);box-shadow:0 0 0 4px rgba(45,107,69,.1)}
+.btn-primary{width:100%;padding:15px;background:linear-gradient(135deg,var(--leaf),var(--leaf-light));color:#fff;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 6px 22px rgba(45,107,69,.38);letter-spacing:.3px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(45,107,69,.44)}
+.btn-primary:active{transform:scale(.98)}
+.err-msg{color:var(--red);font-size:13px;font-weight:600;background:rgba(192,57,43,.08);padding:10px 14px;border-radius:12px;margin-bottom:12px;display:none;border-left:3px solid var(--red)}
+.login-footer{color:rgba(247,242,232,.3);font-size:11px;text-align:center;letter-spacing:.5px}
+
+/* ─── APP ────────────────────────────────────── */
+#app{display:none;min-height:100vh}
+#app.active{display:block}
+
+/* ─── SIDEBAR ────────────────────────────────── */
+.sidebar{width:240px;background:linear-gradient(180deg,var(--forest) 0%,#152c1b 100%);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:300;box-shadow:4px 0 32px rgba(0,0,0,.3);transition:transform .3s ease}
+.sb-logo{padding:24px 20px 18px;border-bottom:1px solid rgba(200,151,61,.1)}
+.sb-logo h1{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--cream);line-height:1}
+.sb-logo h1 span{color:var(--gold)}
+.sb-logo p{font-size:10px;color:rgba(200,151,61,.5);text-transform:uppercase;letter-spacing:2px;margin-top:4px;font-weight:700}
+.sb-farm{padding:8px 20px 10px;font-size:11px;color:rgba(247,242,232,.32);font-weight:600;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:12px;cursor:pointer;color:rgba(247,242,232,.35);font-size:13px;font-weight:700;border:none;background:transparent;transition:all .2s;font-family:'Nunito',sans-serif;text-align:left;width:100%;position:relative}
+.sb-item:hover{background:rgba(255,255,255,.07);color:rgba(247,242,232,.7)}
+.sb-item.active{background:rgba(200,151,61,.13);color:var(--gold-light)}
+.sb-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;background:var(--gold);border-radius:0 3px 3px 0}
+.sb-icon{font-size:17px;width:22px;text-align:center;flex-shrink:0}
+.sb-badge{margin-left:auto;background:var(--amber);color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px}
+.sb-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-user{display:flex;align-items:center;gap:9px}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;flex-shrink:0}
+.sb-uname{font-size:12px;color:var(--cream);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.sb-logout{background:rgba(192,57,43,.14);border:1px solid rgba(192,57,43,.2);color:rgba(192,57,43,.8);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.sb-logout:hover{background:rgba(192,57,43,.28)}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:299}
+
+/* ─── MAIN ───────────────────────────────────── */
+.main-wrap{margin-left:240px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(18,37,24,.06)}
+.topbar-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--green);font-weight:700}
+.topbar-farm{background:rgba(45,107,69,.09);color:var(--leaf);font-size:12px;font-weight:700;padding:6px 16px;border-radius:20px;border:1px solid rgba(45,107,69,.16);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.page-content{flex:1;padding:24px 28px;overflow-y:auto}
+
+/* ─── MOBILE TOPBAR ──────────────────────────── */
+.mob-topbar{display:none;background:linear-gradient(135deg,var(--forest),var(--green));padding:12px 16px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 4px 18px rgba(0,0,0,.22)}
+.mob-logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);font-weight:700}
+.mob-logo span{color:var(--gold)}
+.mob-right{display:flex;align-items:center;gap:10px}
+.mob-avatar{width:34px;height:34px;border-radius:50%;background:var(--gold);color:var(--forest);font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;cursor:pointer}
+.hamburger{background:rgba(255,255,255,.12);border:none;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:19px;color:#fff;display:flex;align-items:center;justify-content:center}
+
+/* ─── BOTTOM NAV (mobile) ────────────────────── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(8,18,11,.97);backdrop-filter:blur(24px);border-top:1px solid rgba(200,151,61,.13);z-index:150;padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 11px;cursor:pointer;border:none;background:transparent;color:rgba(247,242,232,.3);font-family:'Nunito',sans-serif;transition:all .22s;position:relative}
+.nav-item.active{color:var(--gold)}
+.nav-item.active .nav-iw{background:rgba(200,151,61,.13)}
+.nav-iw{width:36px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;transition:all .22s;margin-bottom:3px;font-size:20px}
+.nav-lbl{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.taskBadge{background:var(--amber);color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;border-radius:8px;padding:0 3px;display:flex;align-items:center;justify-content:center;position:absolute;top:5px;right:calc(50% - 22px)}
+
+/* ─── PAGES ──────────────────────────────────── */
+.page{display:none;animation:fadeUp .28s ease}
+.page.active{display:block}
+.pg-hdr{margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.pg-hdr h2{font-family:'Playfair Display',serif;font-size:26px;color:var(--green);font-weight:700;margin-bottom:2px}
+.pg-hdr p{font-size:13px;color:var(--text-light)}
+
+/* ─── GREET ──────────────────────────────────── */
+.greet-card{background:linear-gradient(145deg,var(--forest) 0%,#1a3b28 55%,var(--leaf) 100%);border-radius:22px;padding:26px 28px 30px;margin-bottom:22px;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(18,37,24,.26)}
+.greet-card::before{content:'';position:absolute;right:-28px;top:-28px;width:180px;height:180px;border-radius:50%;background:rgba(200,151,61,.09)}
+.greet-card::after{content:'🐄';position:absolute;right:20px;bottom:6px;font-size:64px;opacity:.1;line-height:1}
+.greet-txt{color:var(--cream);font-size:22px;font-weight:800;font-family:'Playfair Display',serif;position:relative;z-index:1;margin-bottom:7px}
+.greet-dt{color:rgba(200,151,61,.75);font-size:12px;font-weight:600;letter-spacing:.3px;position:relative;z-index:1}
+
+/* ─── STATS ──────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{background:var(--card);border-radius:18px;padding:18px 16px;box-shadow:var(--shadow);border:1px solid rgba(200,151,61,.05);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:default}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-card::after{content:'';position:absolute;right:-14px;bottom:-14px;width:72px;height:72px;border-radius:50%;background:rgba(45,107,69,.05)}
+.stat-icon{font-size:22px;display:block;margin-bottom:10px}
+.stat-val{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:var(--green);line-height:1;margin-bottom:6px}
+.stat-label{font-size:10px;color:var(--text-light);font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+
+/* ─── SECTION CARD ───────────────────────────── */
+.sec-card{background:var(--card);border-radius:22px;padding:22px;box-shadow:var(--shadow);margin-bottom:22px;border:1px solid rgba(45,107,69,.04)}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.sec-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--green);font-weight:700}
+.sec-sub{font-size:11px;color:var(--text-light);margin-top:2px}
+
+/* ─── FARM CARDS ──────────────────────────────── */
+.farms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.farm-card{background:var(--card);border-radius:18px;padding:18px;cursor:pointer;transition:all .22s;box-shadow:var(--shadow);border:1px solid rgba(45,107,69,.06);display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden}
+.farm-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),var(--leaf));border-radius:4px 0 0 4px}
+.farm-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:rgba(45,107,69,.18)}
+.farm-card:active{transform:scale(.98)}
+.farm-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(145deg,var(--green),var(--leaf));display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 4px 14px rgba(45,107,69,.3)}
+.farm-info{flex:1;min-width:0}
+.farm-name{font-weight:800;font-size:15px;color:var(--green);margin-bottom:3px}
+.farm-loc{font-size:12px;color:var(--text-light);margin-bottom:9px}
+.farm-badges{display:flex;gap:7px;flex-wrap:wrap}
+.fbadge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(45,107,69,.1);color:var(--leaf)}
+.fbadge-gold{background:rgba(200,151,61,.12);color:#7a5212}
+.farm-arrow{font-size:22px;color:var(--text-light);align-self:center;flex-shrink:0}
+
+/* ─── MODULES ────────────────────────────────── */
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+.module-card{background:var(--card);border-radius:22px;padding:28px 18px 22px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:all .26s;border:1.5px solid rgba(45,107,69,.07);position:relative;overflow:hidden}
+.module-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg);border-color:var(--gold)}
+.module-card:active{transform:scale(.96)}
+.module-card::after{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(200,151,61,.04),rgba(45,107,69,.04));opacity:0;transition:opacity .25s}
+.module-card:hover::after{opacity:1}
+.module-iw{width:68px;height:68px;border-radius:20px;margin:0 auto 16px;background:linear-gradient(145deg,var(--green),var(--leaf));display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 8px 24px rgba(45,107,69,.32)}
+.module-name{font-weight:800;font-size:15px;color:var(--green);font-family:'Playfair Display',serif;margin-bottom:6px}
+.module-desc{font-size:11px;color:var(--text-light);line-height:1.5}
+.module-content{display:none}
+.module-content.active{display:block;animation:fadeUp .28s ease}
+
+/* MODULE HEADER */
+.mod-hdr{display:flex;align-items:center;gap:14px;padding:18px 22px;background:linear-gradient(135deg,var(--forest),#1a3b28);border-radius:18px;margin-bottom:22px;box-shadow:0 6px 24px rgba(18,37,24,.22)}
+.mod-hdr-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.mod-hdr-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--cream)}
+.mod-hdr-sub{font-size:12px;color:rgba(247,242,232,.55);margin-top:3px}
+.back-btn{display:inline-flex;align-items:center;gap:7px;background:var(--cream-dark);color:var(--green);border:none;border-radius:11px;padding:9px 16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:18px;transition:all .2s}
+.back-btn:hover{background:var(--border);transform:translateX(-2px)}
+
+/* ─── UPLOAD ──────────────────────────────────── */
+.upload-zone{position:relative;border:2px dashed rgba(45,107,69,.26);border-radius:20px;padding:38px 22px;text-align:center;cursor:pointer;transition:all .22s;background:linear-gradient(145deg,var(--cream),rgba(45,107,69,.02));margin-bottom:18px;position:relative}
+.upload-zone:hover{border-color:var(--leaf);background:rgba(45,107,69,.05);transform:translateY(-2px);box-shadow:0 6px 20px rgba(45,107,69,.1)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:46px;display:block;margin-bottom:11px;filter:drop-shadow(0 4px 8px rgba(45,107,69,.18))}
+.upload-txt{font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px}
+.upload-sub{font-size:12px;color:var(--text-light)}
+.img-prev{position:relative;margin-bottom:18px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.img-prev img{width:100%;border-radius:18px;display:block;max-height:280px;object-fit:contain;background:#f5f0e8}
+.img-prev-rm{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.65);color:#fff;border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+
+/* ─── RESULTS ────────────────────────────────── */
+.res-card{background:var(--card);border-radius:20px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px;border:1px solid rgba(45,107,69,.05)}
+.res-card h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--green);margin-bottom:14px}
+.res-tbl{width:100%;border-collapse:collapse}
+.res-tbl tr td{padding:10px 0;font-size:13px;border-bottom:1px solid var(--cream-dark)}
+.res-tbl tr:last-child td{border-bottom:none}
+.res-tbl td:first-child{color:var(--text-light);font-weight:600;width:45%}
+.res-tbl td:last-child{color:var(--text);font-weight:700;text-align:right}
+.padrao-badge{padding:4px 13px;border-radius:20px;font-size:12px;font-weight:800}
+.padrao-acima{background:rgba(45,107,69,.14);color:var(--leaf)}
+.padrao-dentro{background:rgba(31,106,154,.14);color:var(--blue)}
+.padrao-abaixo{background:rgba(230,126,34,.14);color:var(--amber)}
+.stars{color:var(--gold);font-size:18px;letter-spacing:2px}
+.alert-box{border-radius:13px;padding:13px 16px;margin-bottom:11px;font-size:13px;line-height:1.6;font-weight:500}
+.alert-green{background:rgba(45,107,69,.09);color:var(--leaf);border-left:3px solid var(--leaf)}
+.alert-amber{background:rgba(230,126,34,.09);color:var(--amber);border-left:3px solid var(--amber)}
+.alert-red{background:rgba(192,57,43,.09);color:var(--red);border-left:3px solid var(--red)}
+.alert-blue{background:rgba(31,106,154,.09);color:var(--blue);border-left:3px solid var(--blue)}
+.prog-wrap{background:var(--cream-dark);border-radius:100px;height:13px;overflow:hidden;margin:9px 0}
+.prog-bar{height:100%;border-radius:100px;transition:width .9s ease}
+.prog-green{background:linear-gradient(90deg,var(--leaf),var(--leaf-light))}
+.prog-blue{background:linear-gradient(90deg,var(--blue),#2E8BC0)}
+.prog-amber{background:linear-gradient(90deg,var(--amber),#F39C12)}
+.prog-red{background:linear-gradient(90deg,var(--red),#E74C3C)}
+
+/* ─── CHAT ───────────────────────────────────── */
+.persona-chips{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+.persona-chip{padding:9px 18px;border-radius:22px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--border);color:var(--text-mid);background:var(--card);transition:all .2s;font-family:'Nunito',sans-serif;box-shadow:var(--shadow)}
+.persona-chip.active{border-color:var(--leaf);color:var(--leaf);background:rgba(45,107,69,.08);box-shadow:0 4px 14px rgba(45,107,69,.2)}
+.chat-wrap{background:var(--cream);border-radius:20px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px}
+.chat-msgs{min-height:220px;max-height:420px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:11px}
+.msg{max-width:80%;word-wrap:break-word;font-size:14px;line-height:1.6}
+.msg-user{align-self:flex-end;background:linear-gradient(135deg,var(--green),var(--leaf));color:var(--cream);padding:11px 15px;border-radius:18px 18px 4px 18px;box-shadow:0 4px 12px rgba(45,107,69,.22)}
+.msg-ai{align-self:flex-start;background:var(--card);color:var(--text);padding:11px 15px;border-radius:18px 18px 18px 4px;box-shadow:0 3px 12px rgba(0,0,0,.07)}
+.msg-img{max-width:160px;border-radius:12px;display:block;margin-bottom:5px}
+.chat-inp-row{display:flex;gap:9px;padding:12px 16px;background:var(--card);border-top:1px solid var(--border);align-items:flex-end}
+.chat-inp{flex:1;border:2px solid var(--border);border-radius:13px;padding:11px 15px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);background:var(--cream);outline:none;resize:none;max-height:110px;transition:all .2s}
+.chat-inp:focus{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(45,107,69,.1)}
+.chat-send{background:linear-gradient(135deg,var(--green),var(--leaf));color:#fff;border:none;width:46px;height:46px;border-radius:13px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(45,107,69,.28);flex-shrink:0;transition:all .2s}
+.chat-send:active{transform:scale(.93)}
+.chat-imgbtn{background:var(--cream-dark);color:var(--text-mid);border:none;width:46px;height:46px;border-radius:13px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.chat-imgbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ─── TASKS ──────────────────────────────────── */
+.task-card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;border:1px solid rgba(45,107,69,.05);position:relative;overflow:hidden}
+.task-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),var(--leaf));border-radius:4px 0 0 4px}
+.task-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.task-card:active{transform:scale(.98)}
+.task-top{display:flex;align-items:flex-start;justify-content:space-between;gap:11px;margin-bottom:7px}
+.task-title{font-weight:800;font-size:15px;color:var(--green)}
+.task-meta{font-size:12px;color:var(--text-light);margin-top:3px}
+.sbadge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:800;flex-shrink:0;letter-spacing:.3px}
+.sbadge-pend{background:rgba(230,126,34,.14);color:var(--amber)}
+.sbadge-done{background:rgba(45,107,69,.14);color:var(--leaf)}
+
+/* ─── REPORTS ────────────────────────────────── */
+.rep-card{background:var(--card);border-radius:20px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1px solid rgba(45,107,69,.05);transition:all .2s}
+.rep-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.rep-icon{width:50px;height:50px;border-radius:14px;background:linear-gradient(145deg,var(--green),var(--leaf));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 14px rgba(45,107,69,.26)}
+.rep-info{flex:1}
+.rep-title{font-weight:700;font-size:14px;color:var(--green);margin-bottom:3px}
+.rep-meta{font-size:12px;color:var(--text-light)}
+.rep-actions{display:flex;gap:7px}
+
+/* ─── FORMS ──────────────────────────────────── */
+.form-row{margin-bottom:15px}
+.form-row label{display:block;font-size:11px;font-weight:800;color:var(--text-mid);letter-spacing:.7px;text-transform:uppercase;margin-bottom:7px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:13px 15px;border:2px solid var(--border);border-radius:13px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);background:var(--cream);outline:none;transition:all .2s;resize:none}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(45,107,69,.1)}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A6355' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px!important}
+
+/* ─── BUTTONS ────────────────────────────────── */
+.btn-add{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);border:none;border-radius:13px;padding:10px 20px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(200,151,61,.34);letter-spacing:.2px}
+.btn-add:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(200,151,61,.42)}
+.btn-add:active{transform:scale(.97)}
+.btn-sm{padding:7px 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:'Nunito',sans-serif;transition:all .2s}
+.btn-green{background:var(--leaf);color:#fff}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-danger{width:100%;padding:13px;background:rgba(192,57,43,.07);color:var(--red);border:2px solid rgba(192,57,43,.18);border-radius:13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-danger:hover{background:rgba(192,57,43,.13)}
+.link-box{background:var(--forest);border-radius:13px;padding:12px 16px;font-size:12px;color:var(--gold);word-break:break-all;font-family:monospace;margin:11px 0;line-height:1.6}
+.btn-copy{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);border:none;border-radius:11px;padding:11px 20px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 4px 14px rgba(200,151,61,.28)}
+
+/* ─── CONFIG ──────────────────────────────────── */
+.cfg-sec{background:var(--card);border-radius:22px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow);border:1px solid rgba(45,107,69,.04)}
+.cfg-sec h3{font-size:11px;font-weight:800;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--cream-dark)}
+.cfg-row:last-child{border-bottom:none}
+.cfg-label{font-size:14px;color:var(--text);font-weight:600}
+.cfg-val{font-size:14px;font-weight:700;color:var(--text-mid)}
+.pro-badge{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px}
+.cfg-footer{text-align:center;color:var(--text-light);font-size:12px;padding:22px;line-height:1.8;letter-spacing:.3px}
+
+/* ─── EMPTY ──────────────────────────────────── */
+.empty-state{text-align:center;padding:52px 22px;background:var(--card);border-radius:22px;box-shadow:var(--shadow);border:1px dashed rgba(45,107,69,.18)}
+.empty-icon{font-size:58px;display:block;margin-bottom:14px;opacity:.22}
+.empty-txt{color:var(--text-light);font-size:14px;line-height:1.7;font-weight:500}
+
+/* ─── MODAL ──────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,18,11,.65);z-index:1100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:20px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:26px;padding:28px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 32px 90px rgba(0,0,0,.3);animation:fadeUp .28s ease}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 22px}
+.modal h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--green);margin-bottom:22px}
+.modal-close{float:right;background:var(--cream-dark);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text-mid);margin-top:-5px;transition:background .2s}
+.modal-close:hover{background:var(--border)}
+
+/* ─── LOADING ────────────────────────────────── */
+.loading-overlay{position:fixed;inset:0;background:rgba(8,18,11,.55);z-index:1200;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.loading-overlay.active{display:flex}
+.loading-box{background:var(--card);border-radius:24px;padding:32px 44px;text-align:center;box-shadow:var(--shadow-lg)}
+.loading-box p{color:var(--text-mid);font-size:14px;font-weight:600;margin-top:14px}
+.spinner{display:inline-block;width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:7px}
+
+/* ─── DETAIL VIEWS ───────────────────────────── */
+.dh{background:linear-gradient(135deg,var(--forest),#1a3b28);padding:22px 26px;color:var(--cream);border-radius:20px;margin-bottom:20px;box-shadow:0 6px 26px rgba(18,37,24,.2)}
+.dh h2{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:4px}
+.dh p{color:rgba(247,242,232,.5);font-size:13px}
+.tabs{display:flex;gap:3px;background:var(--cream-dark);padding:5px;border-radius:15px;margin-bottom:20px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 20px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer;white-space:nowrap;border:none;background:transparent;border-radius:11px;transition:all .2s;font-family:'Nunito',sans-serif}
+.tab.active{background:var(--card);color:var(--green);box-shadow:0 2px 10px rgba(0,0,0,.09)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.animal-card{background:var(--card);border-radius:18px;padding:15px;margin-bottom:11px;display:flex;align-items:center;gap:13px;cursor:pointer;box-shadow:var(--shadow);transition:all .2s;border:1px solid rgba(45,107,69,.05)}
+.animal-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.animal-thumb{width:54px;height:54px;border-radius:14px;background:var(--cream-dark);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex-shrink:0}
+.animal-thumb img{width:100%;height:100%;object-fit:cover}
+.animal-tag{font-weight:800;font-size:14px;color:var(--green);margin-bottom:3px}
+.animal-meta{font-size:12px;color:var(--text-light)}
+.animal-ana{background:var(--leaf);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;margin-left:auto;white-space:nowrap}
+.timeline{position:relative;padding-left:26px}
+.timeline::before{content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--cream-dark)}
+.timeline-item{position:relative;margin-bottom:16px}
+.tl-dot{position:absolute;left:-20px;top:13px;width:11px;height:11px;border-radius:50%;background:var(--leaf);border:2px solid var(--card);box-shadow:0 2px 7px rgba(45,107,69,.28)}
+.tl-card{background:var(--cream);border-radius:14px;padding:13px;border:1px solid var(--border)}
+.tl-date{font-size:11px;color:var(--text-light);font-weight:600}
+.tl-sum{font-size:13px;color:var(--text-mid);margin-top:3px;line-height:1.5}
+.tl-thumb{width:60px;height:60px;border-radius:11px;object-fit:cover;float:right;margin-left:11px}
+
+/* ─── WORKER ──────────────────────────────────── */
+#workerScreen{position:fixed;inset:0;background:var(--bg);z-index:2000;display:none;overflow-y:auto}
+#workerScreen.active{display:block}
+.wk-hdr{background:linear-gradient(135deg,var(--forest),var(--green));padding:24px 20px;text-align:center}
+.wk-hdr h1{font-family:'Playfair Display',serif;font-size:26px;color:var(--cream)}
+.wk-hdr p{color:rgba(247,242,232,.5);font-size:13px;margin-top:5px}
+.wk-body{padding:18px;max-width:640px;margin:0 auto}
+.wk-card{background:var(--card);border-radius:20px;padding:22px;margin-bottom:16px;box-shadow:var(--shadow)}
+.wk-footer{text-align:center;color:var(--text-light);font-size:12px;padding:22px;line-height:1.9}
+
+/* ─── ADMIN ───────────────────────────────────── */
+#adminScreen{display:none;position:fixed;inset:0;z-index:950;overflow-y:auto}
+.adm-hdr{position:relative;overflow:hidden;padding:28px 22px 32px;background:linear-gradient(160deg,#040d06 0%,var(--forest) 55%,#1a3b28 100%)}
+.adm-hdr svg{position:absolute;inset:0;pointer-events:none}
+.adm-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+.adm-logo h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--cream);line-height:1}
+.adm-logo h1 span{color:var(--gold)}
+.adm-logo p{font-size:10px;color:rgba(200,151,61,.5);text-transform:uppercase;letter-spacing:2px;margin-top:4px;font-weight:700}
+.adm-logo small{display:block;font-size:10px;color:rgba(247,242,232,.28);letter-spacing:.8px;margin-top:2px;font-style:normal}
+.adm-exit{background:rgba(200,151,61,.14);border:1.5px solid rgba(200,151,61,.3);color:var(--gold-light);padding:9px 20px;border-radius:11px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.adm-exit:hover{background:rgba(200,151,61,.24)}
+.adm-stats{display:grid;grid-template-columns:1fr 1fr;gap:11px;position:relative;z-index:1}
+.adm-stat{background:rgba(255,255,255,.07);border:1px solid rgba(200,151,61,.15);border-radius:16px;padding:16px 18px}
+.adm-stat-val{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:var(--gold);line-height:1}
+.adm-stat-lbl{font-size:10px;color:rgba(247,242,232,.4);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-top:5px}
+.adm-body{background:var(--bg);border-radius:26px 26px 0 0;margin-top:-16px;padding:26px 20px 56px;position:relative;z-index:2}
+.cli-card{background:var(--card);border-radius:20px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:13px;cursor:pointer;box-shadow:var(--shadow);transition:all .22s;border:1px solid transparent}
+.cli-card:hover{border-color:var(--leaf);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.cli-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff;flex-shrink:0}
+.cli-info{flex:1;min-width:0}
+.cli-name{font-weight:800;font-size:15px;color:var(--green);margin-bottom:2px}
+.cli-email{font-size:12px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:7px}
+.cli-badges{display:flex;gap:7px;flex-wrap:wrap}
+.cli-arrow{font-size:20px;color:var(--text-light);flex-shrink:0}
+
+
+/* ─── TOAST ───────────────────────────────────── */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:var(--cream);padding:12px 24px;border-radius:100px;font-size:14px;font-weight:700;z-index:2000;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.amber{background:var(--amber)}
+.toast.red{background:var(--red)}
+
+/* ─── HELPERS ────────────────────────────────── */
+.hidden{display:none!important}
+.mt8{margin-top:8px}.mb8{margin-bottom:8px}.mt16{margin-top:16px}.mb16{margin-bottom:16px}
+
+/* ─── RESPONSIVE MOBILE ──────────────────────── */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-260px)}
+  .sidebar.open{transform:translateX(0)}
+  .sb-overlay.active{display:block!important}
+  .main-wrap{margin-left:0}
+  .topbar{display:none}
+  .mob-topbar{display:flex}
+  .bottom-nav{display:flex}
+  .page-content{padding:14px;padding-bottom:86px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .modules-grid{grid-template-columns:1fr 1fr}
+  .farms-grid{grid-template-columns:1fr}
+  .greet-txt{font-size:19px}
+  .stat-val{font-size:28px}
+  .sec-card{padding:16px}
+  .modal{border-radius:24px 24px 0 0;position:fixed;bottom:0;left:0;right:0;max-width:100%;margin:0;padding:24px 18px 40px}
+  .modal-overlay{align-items:flex-end;padding:0}
+  .adm-body{padding:18px 14px 56px}
+  .adm-logo h1{font-size:24px}
+  .page-content{padding:14px 14px 86px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══════════════════════════════════════ -->
+<div id="loginScreen">
+    <svg id="loginBg" viewBox="0 0 480 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <!-- Sky gradient -->
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#040d06"/>
+        <stop offset="60%" stop-color="#122518"/>
+        <stop offset="100%" stop-color="#1E4230"/>
+      </linearGradient>
+      <linearGradient id="moon-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <stop offset="0%" stop-color="#F7F2E8" stop-opacity="0.15"/>
+        <stop offset="100%" stop-color="#F7F2E8" stop-opacity="0"/>
+      </linearGradient>
+      <radialGradient id="moon-halo" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#F4ECC8" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#F4ECC8" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Sky -->
+    <rect width="480" height="900" fill="url(#sky)"/>
+
+    <!-- Moon halo -->
+    <ellipse cx="360" cy="130" rx="80" ry="80" fill="url(#moon-halo)" opacity="0.6"/>
+    <!-- Moon -->
+    <circle cx="360" cy="130" r="36" fill="#F4ECC8" filter="url(#glow)" opacity="0.95"/>
+    <circle cx="348" cy="122" r="28" fill="#E8D98A" opacity="0.4"/>
+
+    <!-- Stars -->
+    <g class="stars-group">
+      <circle cx="30" cy="40" r="1.5" fill="#fff" opacity="0.8" style="animation:twinkle 2.1s infinite"/>
+      <circle cx="80" cy="20" r="1" fill="#fff" opacity="0.6" style="animation:twinkle 1.7s infinite .3s"/>
+      <circle cx="150" cy="55" r="2" fill="#fff" opacity="0.9" style="animation:twinkle 2.5s infinite .6s"/>
+      <circle cx="200" cy="25" r="1" fill="#fff" opacity="0.7" style="animation:twinkle 1.9s infinite .2s"/>
+      <circle cx="260" cy="60" r="1.5" fill="#fff" opacity="0.5" style="animation:twinkle 2.3s infinite .8s"/>
+      <circle cx="310" cy="30" r="1" fill="#fff" opacity="0.8" style="animation:twinkle 1.6s infinite .4s"/>
+      <circle cx="410" cy="55" r="1.5" fill="#fff" opacity="0.6" style="animation:twinkle 2.8s infinite .1s"/>
+      <circle cx="450" cy="20" r="1" fill="#fff" opacity="0.9" style="animation:twinkle 2s infinite .7s"/>
+      <circle cx="50" cy="95" r="1" fill="#fff" opacity="0.4" style="animation:twinkle 3s infinite .5s"/>
+      <circle cx="120" cy="80" r="1.5" fill="#F4ECC8" opacity="0.7" style="animation:twinkle 2.2s infinite"/>
+      <circle cx="190" cy="100" r="1" fill="#fff" opacity="0.5" style="animation:twinkle 1.8s infinite .9s"/>
+      <circle cx="430" cy="90" r="1.5" fill="#F4ECC8" opacity="0.8" style="animation:twinkle 2.4s infinite .3s"/>
+      <circle cx="470" cy="140" r="1" fill="#fff" opacity="0.5" style="animation:twinkle 2.6s infinite .6s"/>
+    </g>
+
+    <!-- Rolling hills / ground -->
+    <path d="M0 580 Q120 520 240 560 Q360 600 480 540 L480 900 L0 900 Z" fill="#0a1a0d"/>
+    <path d="M0 620 Q80 580 200 610 Q320 645 480 590 L480 900 L0 900 Z" fill="#0d200f"/>
+    <path d="M0 660 Q100 635 240 655 Q380 672 480 640 L480 900 L0 900 Z" fill="#122518"/>
+    <path d="M0 700 Q150 675 300 695 Q400 707 480 685 L480 900 L0 900 Z" fill="#162d1b" opacity="0.8"/>
+
+    <!-- Fence -->
+    <g stroke="#2D3B20" stroke-width="2.5" stroke-linecap="round">
+      <!-- Posts -->
+      <line x1="30" y1="650" x2="30" y2="710"/>
+      <line x1="90" y1="642" x2="90" y2="702"/>
+      <line x1="150" y1="646" x2="150" y2="706"/>
+      <line x1="210" y1="648" x2="210" y2="708"/>
+      <line x1="270" y1="645" x2="270" y2="705"/>
+      <line x1="330" y1="643" x2="330" y2="703"/>
+      <line x1="390" y1="646" x2="390" y2="706"/>
+      <line x1="450" y1="648" x2="450" y2="708"/>
+      <!-- Rails -->
+      <path d="M30 663 Q90 659 150 661 Q210 663 270 660 Q330 658 390 660 Q420 661 450 662" fill="none"/>
+      <path d="M30 678 Q90 674 150 676 Q210 678 270 675 Q330 673 390 675 Q420 676 450 677" fill="none"/>
+    </g>
+
+    <!-- Trees -->
+    <g opacity="0.7">
+      <!-- Tree left -->
+      <rect x="16" y="590" width="8" height="60" fill="#1a2e14" rx="2"/>
+      <ellipse cx="20" cy="575" rx="22" ry="35" fill="#0f2010"/>
+      <ellipse cx="20" cy="560" rx="15" ry="26" fill="#142818"/>
+      <!-- Tree right -->
+      <rect x="440" y="585" width="8" height="65" fill="#1a2e14" rx="2"/>
+      <ellipse cx="444" cy="568" rx="24" ry="38" fill="#0f2010"/>
+      <ellipse cx="444" cy="550" rx="16" ry="28" fill="#142818"/>
+      <!-- Mid tree -->
+      <rect x="390" y="598" width="6" height="45" fill="#1a2e14" rx="2"/>
+      <ellipse cx="393" cy="586" rx="18" ry="26" fill="#0e1e0e"/>
+    </g>
+
+    <!-- Cattle silhouettes -->
+    <!-- Cow 1 (large) -->
+    <g transform="translate(60,660)" opacity="0.85">
+      <ellipse cx="0" cy="0" rx="35" ry="18" fill="#0a1408"/>
+      <ellipse cx="32" cy="-8" rx="15" ry="11" fill="#0a1408"/>
+      <ellipse cx="44" cy="-10" rx="7" ry="5" fill="#0a1408"/>
+      <!-- Legs -->
+      <rect x="-20" y="14" width="5" height="18" rx="2" fill="#0a1408"/>
+      <rect x="-8" y="14" width="5" height="20" rx="2" fill="#0a1408"/>
+      <rect x="10" y="14" width="5" height="18" rx="2" fill="#0a1408"/>
+      <rect x="22" y="14" width="5" height="20" rx="2" fill="#0a1408"/>
+      <!-- Tail -->
+      <path d="M-34 -4 Q-50 -15 -46 -22" stroke="#0a1408" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <!-- Horns -->
+      <path d="M42 -14 Q46 -20 44 -18" stroke="#0a1408" stroke-width="2" fill="none"/>
+      <path d="M46 -13 Q51 -19 49 -17" stroke="#0a1408" stroke-width="2" fill="none"/>
+    </g>
+
+    <!-- Cow 2 (medium, background) -->
+    <g transform="translate(300,672)" opacity="0.6">
+      <ellipse cx="0" cy="0" rx="28" ry="14" fill="#081007"/>
+      <ellipse cx="25" cy="-6" rx="12" ry="9" fill="#081007"/>
+      <ellipse cx="35" cy="-8" rx="6" ry="4" fill="#081007"/>
+      <rect x="-16" y="11" width="4" height="14" rx="2" fill="#081007"/>
+      <rect x="-6" y="11" width="4" height="16" rx="2" fill="#081007"/>
+      <rect x="8" y="11" width="4" height="14" rx="2" fill="#081007"/>
+      <rect x="18" y="11" width="4" height="16" rx="2" fill="#081007"/>
+      <path d="M-27 -3 Q-40 -12 -37 -18" stroke="#081007" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- Cow 3 (far, small) -->
+    <g transform="translate(420,678)" opacity="0.45">
+      <ellipse cx="0" cy="0" rx="20" ry="10" fill="#060d05"/>
+      <ellipse cx="18" cy="-5" rx="9" ry="7" fill="#060d05"/>
+      <rect x="-12" y="8" width="3" height="10" rx="1" fill="#060d05"/>
+      <rect x="-4" y="8" width="3" height="12" rx="1" fill="#060d05"/>
+      <rect x="6" y="8" width="3" height="10" rx="1" fill="#060d05"/>
+      <rect x="14" y="8" width="3" height="12" rx="1" fill="#060d05"/>
+    </g>
+
+    <!-- Fireflies / distant lights -->
+    <circle cx="170" cy="620" r="2" fill="#C8973D" opacity="0.6" style="animation:twinkle 3s infinite .5s"/>
+    <circle cx="280" cy="608" r="1.5" fill="#C8973D" opacity="0.4" style="animation:twinkle 2.5s infinite 1s"/>
+    <circle cx="360" cy="625" r="2" fill="#C8973D" opacity="0.5" style="animation:twinkle 3.5s infinite .2s"/>
+  </svg>
+  <div class="login-wrap">
+    <div class="login-logo">
+      <h1>Pecuár<span>IA</span></h1>
+      <p>Gestão inteligente de rebanho</p>
+    </div>
+    <!-- Client branding (shown when email matches a client) -->
+    <div id="clientBranding" style="display:none;animation:fadeUp .4s ease;text-align:center">
+      <div id="clientLogoWrap" style="margin-bottom:12px">
+        <img id="clientLogoImg" src="" style="max-height:72px;max-width:200px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));display:none">
+      </div>
+      <div id="clientCompanyName" style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--cream);margin-bottom:2px"></div>
+      <div style="font-size:10px;color:rgba(200,151,61,.6);letter-spacing:2px;text-transform:uppercase;font-weight:700">powered by PecuárIA</div>
+    </div>
+
+    <div class="login-card">
+      <h2 id="loginCardTitle">Entrar</h2>
+      <div class="err-msg" id="loginError"></div>
+      <div class="fg">
+        <label>E-mail</label>
+        <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email" oninput="detectClientBranding(this.value)">
+      </div>
+      <div class="fg">
+        <label>Senha</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="loginBlockedMsg" style="display:none" class="alert-box alert-red mb8"></div>
+      <button class="btn-primary" id="loginBtn" onclick="doLogin()">Entrar</button>
+    </div>
+    <div class="login-footer">Produzido por Triade Resultado · Alexandre Amorim · Itapetinga, BA</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ════════════════════════════════════════ -->
+<div id="adminScreen">
+  <div class="adm-hdr">
+    <svg viewBox="0 0 480 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="28" r="1.3" fill="#fff" opacity=".6" style="animation:twinkle 2.3s infinite"/>
+      <circle cx="100" cy="14" r=".9" fill="#fff" opacity=".45" style="animation:twinkle 1.8s infinite .4s"/>
+      <circle cx="170" cy="38" r="1.6" fill="#F4ECC8" opacity=".65" style="animation:twinkle 2.6s infinite .2s"/>
+      <circle cx="240" cy="18" r="1" fill="#fff" opacity=".4" style="animation:twinkle 2s infinite .7s"/>
+      <circle cx="300" cy="48" r="1.2" fill="#fff" opacity=".5" style="animation:twinkle 3s infinite"/>
+      <circle cx="370" cy="12" r=".9" fill="#F4ECC8" opacity=".55" style="animation:twinkle 2.4s infinite .5s"/>
+      <circle cx="430" cy="34" r="1.4" fill="#fff" opacity=".48" style="animation:twinkle 1.9s infinite .3s"/>
+      <circle cx="465" cy="16" r=".8" fill="#fff" opacity=".7" style="animation:twinkle 2.7s infinite .8s"/>
+      <circle cx="75" cy="64" r=".9" fill="#C8973D" opacity=".5" style="animation:twinkle 3.2s infinite .2s"/>
+      <circle cx="420" cy="68" r="1.1" fill="#C8973D" opacity=".38" style="animation:twinkle 2.8s infinite .6s"/>
+    </svg>
+    <div class="adm-inner">
+      <div class="adm-logo">
+        <h1>Pecuár<span>IA</span></h1>
+        <p>Painel Administrativo<small>Triade Resultado · Alexandre Amorim · Itapetinga, BA</small></p>
+      </div>
+      <button class="adm-exit" onclick="exitAdmin()">Sair ›</button>
+    </div>
+    <div class="adm-stats" id="adminStats"></div>
+  </div>
+  <div class="adm-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--green);font-weight:700">Clientes</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px">Gerencie os acessos ao PecuárIA</div>
+      </div>
+      <button class="btn-add" onclick="openModal('adminNewClientModal')">＋ Novo cliente</button>
+    </div>
+    <div id="adminClientList" style="margin-bottom:24px"></div>
+    <div class="cfg-sec" style="border:1px solid rgba(45,107,69,.2)">
+      <h3>🔑 API Key — Anthropic</h3>
+      <div style="background:rgba(45,107,69,.12);border:1px solid rgba(45,107,69,.25);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--leaf)">🔑 Chave configurada</div>
+          <div style="font-size:11px;color:var(--text-light);margin-top:2px">sk-ant-api03-UtJL...bwAA · Ativa</div>
+        </div>
+        <button onclick="document.getElementById('apiKeyChangeArea').style.display=document.getElementById('apiKeyChangeArea').style.display==='none'?'block':'none'" style="background:rgba(45,107,69,.2);border:1px solid rgba(45,107,69,.3);color:var(--leaf);padding:6px 14px;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Alterar</button>
+      </div>
+      <div id="apiKeyChangeArea" style="display:none;margin-top:12px">
+        <div class="form-row" style="position:relative">
+          <label>Nova chave API</label>
+          <input type="password" id="adminApiKeyInput" placeholder="sk-ant-..." style="padding-right:48px">
+          <span onclick="toggleAdminKey()" style="position:absolute;right:14px;bottom:14px;cursor:pointer;font-size:17px;color:var(--text-light)">👁</span>
+        </div>
+        <button class="btn-primary" onclick="saveAdminApiKey()">Salvar nova chave</button>
+      </div>
+    </div>
+
+
+
+    <div class="cfg-footer">PecuárIA · Painel Administrativo<br><span style="color:var(--gold);font-weight:700">Triade Resultado · Alexandre Amorim · Itapetinga, BA</span></div>
+  </div>
+</div>
+
+<!-- MODAL: Novo Cliente -->
+<div class="modal-overlay" id="adminNewClientModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('adminNewClientModal')">✕</button>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+      <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold-light));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">👤</div>
+      <div><h2 style="margin:0;font-size:22px">Novo Cliente</h2><div style="font-size:12px;color:var(--text-light);margin-top:2px">Cadastre acesso ao PecuárIA</div></div>
+    </div>
+    <div class="err-msg" id="newClientError"></div>
+    <div class="form-row"><label>Nome completo do responsável</label><input type="text" id="ncName" placeholder="Ex: João Silva"></div>
+    <div class="form-row"><label>Nome da empresa / fazenda</label><input type="text" id="ncCompany" placeholder="Ex: Fazenda Bela Vista / Proagro"></div>
+    <div class="form-row"><label>E-mail (será o login)</label><input type="email" id="ncEmail" placeholder="email@cliente.com"></div>
+    <div class="form-row"><label>Senha de acesso</label><input type="text" id="ncPass" placeholder="Crie uma senha para ele"></div>
+    <div class="form-row"><label>Fazenda principal</label><input type="text" id="ncFarm" placeholder="Nome da propriedade principal"></div>
+    <div class="form-row"><label>Data de vencimento</label><input type="date" id="ncExpiry"></div>
+    <div class="form-row">
+      <label>Logomarca (opcional)</label>
+      <div id="ncLogoZone" style="border:2px dashed var(--border);border-radius:14px;padding:20px;text-align:center;cursor:pointer;background:var(--cream);transition:all .2s;position:relative">
+        <input type="file" id="ncLogoFile" accept="image/*" style="display:none" onchange="previewLogo(this)">
+        <div id="ncLogoPreview" style="display:none;flex-direction:column;align-items:center;gap:8px">
+          <img id="ncLogoImg" src="" style="max-height:60px;max-width:140px;object-fit:contain;border-radius:8px">
+          <button type="button" onclick="event.stopPropagation();removeLogo()" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:700">✕ Remover</button>
+        </div>
+        <div id="ncLogoEmpty"><span style="font-size:28px">🖼️</span><div style="font-size:13px;font-weight:700;color:var(--green);margin-top:6px">Clique para enviar logomarca</div><div style="font-size:11px;color:var(--text-light);margin-top:3px">PNG, JPG — aparecerá na tela de login do cliente</div></div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="createClient()">✅ Cadastrar cliente</button>
+    <div id="ncSuccessMsg" style="display:none" class="mt8"></div>
+  </div>
+</div>
+
+<!-- MODAL: Detalhe Cliente -->
+<div class="modal-overlay" id="adminClientDetailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('adminClientDetailModal')">✕</button>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+      <div id="acdLogoWrap" style="width:56px;height:56px;border-radius:14px;overflow:hidden;flex-shrink:0;background:var(--cream-dark);display:flex;align-items:center;justify-content:center">
+        <img id="acdLogo" src="" style="display:none;width:100%;height:100%;object-fit:contain">
+        <div class="cli-av" id="acdAvatar" style="background:var(--leaf);width:56px;height:56px;border-radius:14px;font-size:22px">?</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <h2 style="margin:0;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="acdTitle">Cliente</h2>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px" id="acdSubtitle"></div>
+        <div id="acdStatusBadge" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div id="acdBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Cliente -->
+<div class="modal-overlay" id="adminEditClientModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('adminEditClientModal')">✕</button>
+    <h2>✏️ Editar Cliente</h2>
+    <input type="hidden" id="ecId">
+    <div class="form-row"><label>Nome do responsável</label><input type="text" id="ecName"></div>
+    <div class="form-row"><label>Empresa / Nome da fazenda</label><input type="text" id="ecCompany"></div>
+    <div class="form-row"><label>E-mail (login)</label><input type="email" id="ecEmail"></div>
+    <div class="form-row"><label>Senha</label><input type="text" id="ecPass"></div>
+    <div class="form-row"><label>Data de vencimento</label><input type="date" id="ecExpiry"></div>
+    <div class="form-row">
+      <label>Logomarca</label>
+      <div style="border:2px dashed var(--border);border-radius:14px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);position:relative">
+        <input type="file" id="ecLogoFile" accept="image/*" style="display:none" onchange="previewEditLogo(this)">
+        <div id="ecLogoPreview" style="display:none;flex-direction:column;align-items:center;gap:6px">
+          <img id="ecLogoImg" src="" style="max-height:56px;max-width:130px;object-fit:contain;border-radius:8px">
+          <button type="button" onclick="event.stopPropagation();removeEditLogo()" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:700">✕ Remover logo</button>
+        </div>
+        <div id="ecLogoEmpty"><span style="font-size:22px">🖼️</span><div style="font-size:12px;font-weight:700;color:var(--green);margin-top:4px">Clique para trocar logomarca</div></div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveEditClient()">💾 Salvar alterações</button>
+  </div>
+</div>
+
+<!-- ═══ APP ══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <h1>Pecuár<span>IA</span></h1>
+      <p>Gestão pecuária</p>
+    </div>
+    <div class="sb-farm" id="sbFarm">Carregando...</div>
+    <nav class="sb-nav">
+      <button class="sb-item active" data-page="home" onclick="showPage('home')"><span class="sb-icon">🏠</span>Início</button>
+      <button class="sb-item" data-page="modules" onclick="showPage('modules')"><span class="sb-icon">⊞</span>Módulos IA</button>
+      <button class="sb-item" data-page="tasks" onclick="showPage('tasks')"><span class="sb-icon">✅</span>Tarefas<span class="sb-badge taskBadge hidden" id="sbTaskBadge">0</span></button>
+      <button class="sb-item" data-page="reports" onclick="showPage('reports')"><span class="sb-icon">📄</span>Relatórios</button>
+      <button class="sb-item" data-page="config" onclick="showPage('config')"><span class="sb-icon">⚙️</span>Configurações</button>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-avatar" id="sbAvatar">?</div>
+        <div class="sb-uname" id="sbUname">Usuário</div>
+        <button class="sb-logout" onclick="doLogout()" title="Sair">↩</button>
+      </div>
+    </div>
+  </div>
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+  <!-- MAIN WRAPPER -->
+  <div class="main-wrap">
+    <!-- MOBILE TOPBAR -->
+    <div class="mob-topbar">
+      <button class="hamburger" onclick="openSidebar()">☰</button>
+      <div class="mob-logo">Pecuár<span>IA</span></div>
+      <div class="mob-right">
+        <div class="mob-avatar" id="mobAvatar" onclick="showPage('config')">?</div>
+      </div>
+    </div>
+
+    <!-- DESKTOP TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Início</div>
+      <div class="topbar-farm" id="topbarFarm">Fazenda</div>
+    </div>
+
+    <!-- PAGE CONTENT -->
+    <div class="page-content" id="mainContent">
+
+      <!-- HOME -->
+      <div class="page active" id="page-home">
+        <div class="greet-card">
+          <div class="greet-txt" id="greetText">Bom dia!</div>
+          <div class="greet-dt" id="greetDate"></div>
+        </div>
+        <div class="stats-row" id="statsGrid"></div>
+        <div class="sec-card">
+          <div class="sec-hdr">
+            <div><div class="sec-title">Minhas Fazendas</div><div class="sec-sub">Clique para gerenciar</div></div>
+            <button class="btn-add" onclick="openModal('farmModal')">＋ Nova fazenda</button>
+          </div>
+          <div class="farms-grid" id="farmList"></div>
+        </div>
+      </div>
+
+      <!-- MODULES -->
+      <div class="page" id="page-modules">
+        <div class="pg-hdr">
+          <div><h2>Módulos IA</h2><p>Análises inteligentes para seu rebanho</p></div>
+        </div>
+        <div class="modules-grid" id="modulesGrid">
+          <div class="module-card" onclick="openModule('count')">
+            <div class="module-iw">📸</div>
+            <div class="module-name">Contagem</div>
+            <div class="module-desc">Conta animais em foto aérea com precisão</div>
+          </div>
+          <div class="module-card" onclick="openModule('identify')">
+            <div class="module-iw">🏷️</div>
+            <div class="module-name">Identificar</div>
+            <div class="module-desc">Analisa raça, peso, saúde e nutrição</div>
+          </div>
+          <div class="module-card" onclick="openModule('pasture')">
+            <div class="module-iw">🌿</div>
+            <div class="module-name">Pastagem</div>
+            <div class="module-desc">Avalia qualidade e recomenda rotação</div>
+          </div>
+          <div class="module-card" onclick="openModule('chat')">
+            <div class="module-iw">💬</div>
+            <div class="module-name">Consultoria</div>
+            <div class="module-desc">Veterinário, Zootecnista e Agrônomo IA</div>
+          </div>
+        </div>
+
+        <!-- COUNT -->
+        <div class="module-content" id="mod-count">
+          <div class="mod-hdr"><div class="mod-hdr-icon">📸</div><div><div class="mod-hdr-title">Contagem de Animais</div><div class="mod-hdr-sub">Foto aérea do curral ou pasto</div></div></div>
+          <button class="back-btn" onclick="closeModule()">← Voltar</button>
+          <label class="upload-zone" id="countUpload" for="countFile" style="display:block;cursor:pointer">
+            <input type="file" id="countFile" accept="image/*" onchange="previewImg(this,'countPreview','countUploadZoneInner')" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5" style="position:absolute;width:1px;height:1px;opacity:0">
+            <div id="countUploadZoneInner"><span class="upload-icon">🚁</span><div class="upload-txt">Selecionar foto aérea</div><div class="upload-sub">Foto de drone ou lugar alto</div></div>
+          </label>
+          <div class="img-prev hidden" id="countPreview"><img id="countPreviewImg" src="" alt=""><button class="img-prev-rm" onclick="removeImg('countPreview','countFile','countUpload')">✕</button></div>
+          <button class="btn-primary" onclick="runCount()">🔍 Analisar com IA</button>
+          <div id="countResult" class="mt16"></div>
+        </div>
+
+        <!-- IDENTIFY -->
+        <div class="module-content" id="mod-identify">
+          <div class="mod-hdr"><div class="mod-hdr-icon">🏷️</div><div><div class="mod-hdr-title">Identificar Animal</div><div class="mod-hdr-sub">Analisa raça, peso e saúde</div></div></div>
+          <button class="back-btn" onclick="closeModule()">← Voltar</button>
+          <div class="form-row"><label>Tipo de gado</label><select id="identifyType"><option value="corte">Gado de Corte</option><option value="leite">Gado de Leite</option></select></div>
+          <div class="form-row"><label>Número do brinco (opcional)</label><input type="text" id="identifyBrinco" placeholder="Ex: BR-0042"></div>
+          <label class="upload-zone" id="identifyUpload" for="identifyFile" style="display:block;cursor:pointer">
+            <input type="file" id="identifyFile" accept="image/*" onchange="previewImg(this,'identifyPreview','identifyUploadInner')" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5" style="position:absolute;width:1px;height:1px;opacity:0">
+            <div id="identifyUploadInner"><span class="upload-icon">📷</span><div class="upload-txt">Foto lateral ou frontal do animal</div><div class="upload-sub">Boa iluminação para melhor análise</div></div>
+          </label>
+          <div class="img-prev hidden" id="identifyPreview"><img id="identifyPreviewImg" src="" alt=""><button class="img-prev-rm" onclick="removeImg('identifyPreview','identifyFile','identifyUpload')">✕</button></div>
+          <button class="btn-primary" onclick="runIdentify()">🔍 Analisar com IA</button>
+          <div id="identifyResult" class="mt16"></div>
+        </div>
+
+        <!-- PASTURE -->
+        <div class="module-content" id="mod-pasture">
+          <div class="mod-hdr"><div class="mod-hdr-icon">🌿</div><div><div class="mod-hdr-title">Avaliação de Pastagem</div><div class="mod-hdr-sub">Diagnóstico e recomendações</div></div></div>
+          <button class="back-btn" onclick="closeModule()">← Voltar</button>
+          <label class="upload-zone" id="pastureUpload" for="pastureFile" style="display:block;cursor:pointer">
+            <input type="file" id="pastureFile" accept="image/*" onchange="previewImg(this,'pasturePreview','pastureUploadInner')" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5" style="position:absolute;width:1px;height:1px;opacity:0">
+            <div id="pastureUploadInner"><span class="upload-icon">🌾</span><div class="upload-txt">Foto de área representativa do pasto</div><div class="upload-sub">Tire de manhã com boa luz</div></div>
+          </label>
+          <div class="img-prev hidden" id="pasturePreview"><img id="pasturePreviewImg" src="" alt=""><button class="img-prev-rm" onclick="removeImg('pasturePreview','pastureFile','pastureUpload')">✕</button></div>
+          <button class="btn-primary" onclick="runPasture()">🔍 Analisar com IA</button>
+          <div id="pastureResult" class="mt16"></div>
+        </div>
+
+        <!-- CHAT -->
+        <div class="module-content" id="mod-chat">
+          <div class="mod-hdr"><div class="mod-hdr-icon">💬</div><div><div class="mod-hdr-title">Consultoria IA</div><div class="mod-hdr-sub">Especialistas à sua disposição</div></div></div>
+          <button class="back-btn" onclick="closeModule()">← Voltar</button>
+          <div class="persona-chips" id="personaChips">
+            <button class="persona-chip active" onclick="setPersona('vet',this)">🩺 Veterinário</button>
+            <button class="persona-chip" onclick="setPersona('zoo',this)">🐄 Zootecnista</button>
+            <button class="persona-chip" onclick="setPersona('agr',this)">🌱 Agrônomo</button>
+          </div>
+          <div class="chat-wrap">
+            <div class="chat-msgs" id="chatMessages"></div>
+            <div class="chat-inp-row">
+              <button class="chat-imgbtn" title="Enviar foto">📎<input type="file" accept="image/*" id="chatImgFile" onchange="sendChatImg(this)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5"></button>
+              <textarea class="chat-inp" id="chatInput" placeholder="Digite sua dúvida..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+              <button class="chat-send" onclick="sendChat()">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="page" id="page-tasks">
+        <div class="pg-hdr">
+          <div><h2>Tarefas</h2><p>Delegue para sua equipe de campo</p></div>
+          <button class="btn-add" onclick="openModal('taskModal')">＋ Nova tarefa</button>
+        </div>
+        <div id="taskList"></div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="page" id="page-reports">
+        <div class="pg-hdr">
+          <div><h2>Relatórios</h2><p>Histórico de análises salvas</p></div>
+        </div>
+        <div id="reportList"></div>
+      </div>
+
+      <!-- CONFIG -->
+      <div class="page" id="page-config">
+        <div class="pg-hdr"><div><h2>Configurações</h2><p>Gerencie sua conta e preferências</p></div></div>
+        <div class="cfg-sec">
+          <h3>🔑 API Anthropic</h3>
+          <div class="form-row"><label>Chave API</label><input type="password" id="apiKeyInput" placeholder="sk-ant-..."></div>
+          <button class="btn-primary" onclick="saveApiKey()">Salvar chave</button>
+        </div>
+        <div class="cfg-sec">
+          <h3>👤 Minha Conta</h3>
+          <div class="cfg-row"><span class="cfg-label">Nome</span><span class="cfg-val" id="cfgName">—</span></div>
+          <div class="cfg-row"><span class="cfg-label">E-mail</span><span class="cfg-val" id="cfgEmail">—</span></div>
+          <div class="cfg-row"><span class="cfg-label">Plano</span><span class="pro-badge">✨ Pro</span></div>
+        </div>
+        <div class="cfg-sec">
+          <h3>🏡 Minhas Fazendas</h3>
+          <div id="cfgFarmList"></div>
+          <button class="btn-add mt16" onclick="openModal('farmModal')">＋ Nova Fazenda</button>
+        </div>
+        <div style="padding:0 0 16px">
+          <button class="btn-danger" onclick="doLogout()">Sair da conta</button>
+        </div>
+        <div class="cfg-footer">PecuárIA · <span style="color:var(--gold);font-weight:700">Triade Resultado · Alexandre Amorim</span><br>Itapetinga, BA</div>
+      </div>
+
+    </div><!-- /page-content -->
+
+    <!-- BOTTOM NAV (mobile) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="home" onclick="showPage('home')"><div class="nav-iw">🏠</div><div class="nav-lbl">Início</div></button>
+      <button class="nav-item" data-page="modules" onclick="showPage('modules')"><div class="nav-iw">⊞</div><div class="nav-lbl">Módulos</div></button>
+      <button class="nav-item" data-page="tasks" onclick="showPage('tasks')"><div class="nav-iw" style="position:relative">✅<span class="taskBadge hidden" id="taskBadge">0</span></div><div class="nav-lbl">Tarefas</div></button>
+      <button class="nav-item" data-page="reports" onclick="showPage('reports')"><div class="nav-iw">📄</div><div class="nav-lbl">Relatórios</div></button>
+      <button class="nav-item" data-page="config" onclick="showPage('config')"><div class="nav-iw">⚙️</div><div class="nav-lbl">Config</div></button>
+    </nav>
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="farmModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('farmModal')">✕</button>
+    <h2>Nova Fazenda</h2>
+    <div class="form-row"><label>Nome da fazenda</label><input type="text" id="farmName" placeholder="Ex: Fazenda São João"></div>
+    <div class="form-row"><label>Localização</label><input type="text" id="farmLoc" placeholder="Ex: Itapetinga, BA"></div>
+    <div class="form-row">
+      <label>Logo da fazenda (opcional)</label>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="farmLogoPreview" style="width:60px;height:60px;border-radius:12px;background:var(--cream-dark);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden">🏡</div>
+        <div style="flex:1">
+          <input type="file" id="farmLogoFile" accept="image/*" style="display:none" onchange="previewFarmLogo(this)">
+          <button style="width:100%;padding:10px;background:var(--cream-dark);border:2px dashed var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text-mid);cursor:pointer">
+            📂 Selecionar logo
+          </button>
+          <div style="font-size:11px;color:var(--text-light);margin-top:5px">PNG ou JPG, quadrado recomendado</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="createFarm()">Criar fazenda</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="animalModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('animalModal')">✕</button>
+    <h2>Cadastrar Animal</h2>
+    <div class="form-row"><label>Brinco / Identificação</label><input type="text" id="animalTag" placeholder="Ex: BR-0042"></div>
+    <div class="form-row"><label>Nome (opcional)</label><input type="text" id="animalName" placeholder="Ex: Estrela"></div>
+    <div class="form-row"><label>Tipo</label><select id="animalType"><option value="corte">Gado de Corte</option><option value="leite">Gado de Leite</option></select></div>
+    <div class="form-row"><label>Sexo</label><select id="animalSex"><option value="macho">Macho</option><option value="femea">Fêmea</option></select></div>
+    <button class="btn-primary" onclick="createAnimal()">Cadastrar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('taskModal')">✕</button>
+    <h2>Nova Tarefa</h2>
+    <div class="form-row"><label>Título</label><input type="text" id="taskTitle" placeholder="Ex: Avaliar lote curral 2"></div>
+    <div class="form-row"><label>Fazenda</label><select id="taskFarm"></select></div>
+    <div class="form-row"><label>Responsável</label><input type="text" id="taskWorker" placeholder="Nome do vaqueiro/gerente"></div>
+    <div class="form-row">
+      <label>Tipo(s) de análise a executar</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:2px">
+        <label id="lbl-animal" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--cream);border-radius:12px;cursor:pointer;border:2px solid var(--border);transition:all .2s;font-size:14px;font-weight:600;color:var(--text);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="taskTypeAnimal" style="width:18px;height:18px;accent-color:var(--leaf);cursor:pointer" onchange="styleCheckLabel(this,'lbl-animal')">
+          <span style="font-size:22px">🏷️</span>
+          <div><div style="font-weight:800;color:var(--green)">Identificar Animal</div><div style="font-size:11px;color:var(--text-light)">Raça, peso estimado, escore e saúde</div></div>
+        </label>
+        <label id="lbl-count" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--cream);border-radius:12px;cursor:pointer;border:2px solid var(--border);transition:all .2s;font-size:14px;font-weight:600;color:var(--text);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="taskTypeCount" style="width:18px;height:18px;accent-color:var(--leaf);cursor:pointer" onchange="styleCheckLabel(this,'lbl-count')">
+          <span style="font-size:22px">📸</span>
+          <div><div style="font-weight:800;color:var(--green)">Contar Rebanho</div><div style="font-size:11px;color:var(--text-light)">Contar animais em foto do curral ou pasto</div></div>
+        </label>
+        <label id="lbl-pasto" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--cream);border-radius:12px;cursor:pointer;border:2px solid var(--border);transition:all .2s;font-size:14px;font-weight:600;color:var(--text);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="taskTypePasto" style="width:18px;height:18px;accent-color:var(--leaf);cursor:pointer" onchange="styleCheckLabel(this,'lbl-pasto')">
+          <span style="font-size:22px">🌿</span>
+          <div><div style="font-weight:800;color:var(--green)">Análise de Pastagem</div><div style="font-size:11px;color:var(--text-light)">Qualidade do pasto, cobertura e rotação</div></div>
+        </label>
+      </div>
+    </div>
+    <div class="form-row"><label>Observações adicionais</label><textarea id="taskDesc" rows="2" placeholder="Instruções extras para o vaqueiro..."></textarea></div>
+    <button class="btn-primary" onclick="createTask()">Criar e gerar link</button>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="taskDetailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('taskDetailModal')">✕</button>
+    <h2 id="tdTitle">Detalhe da Tarefa</h2>
+    <div id="tdBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="analysisModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('analysisModal')">✕</button>
+    <h2>Nova Análise</h2>
+    <label class="upload-zone" for="analysisFile" style="display:block;cursor:pointer">
+      <input type="file" id="analysisFile" accept="image/*" onchange="previewImg(this,'analysisPreview','analysisUploadInner')" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5" style="position:absolute;width:1px;height:1px;opacity:0">
+      <div id="analysisUploadInner"><span class="upload-icon">📷</span><div class="upload-txt">Foto do animal</div><div class="upload-sub">Lateral ou frontal</div></div>
+    </label>
+    <div class="img-prev hidden" id="analysisPreview"><img id="analysisPreviewImg" src="" alt=""><button class="img-prev-rm" onclick="removeImg('analysisPreview','analysisFile',null)">✕</button></div>
+    <button class="btn-primary" onclick="runAnalysis()">🔍 Analisar</button>
+    <div id="analysisResultArea" class="mt16"></div>
+    <button class="btn-add mt8 hidden" id="saveAnalysisBtn" onclick="saveAnalysis()" style="width:100%;justify-content:center">💾 Salvar no histórico</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reportDetailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('reportDetailModal')">✕</button>
+    <h2 id="rdTitle">Relatório</h2>
+    <div id="rdBody"></div>
+  </div>
+</div>
+
+<!-- FARM DETAIL VIEW -->
+<div id="farmDetailView" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);overflow-y:auto;padding-bottom:20px">
+  <div style="padding:20px;max-width:900px;margin:0 auto">
+    <div class="dh" id="farmDetailHeader">
+      <button class="back-btn" style="margin-bottom:14px;background:rgba(255,255,255,.15);color:var(--cream)" onclick="closeFarmDetail()">← Voltar</button>
+      <h2 id="farmDetailName"></h2>
+      <p id="farmDetailLoc"></p>
+    </div>
+    <div class="tabs" id="farmTabs">
+      <button class="tab active" onclick="switchFarmTab('animals',this)">🐄 Animais</button>
+      <button class="tab" onclick="switchFarmTab('pasture',this)">🌿 Pastagem</button>
+      <button class="tab" onclick="switchFarmTab('ftasks',this)">✅ Tarefas</button>
+      <button class="tab" onclick="switchFarmTab('freports',this)">📄 Relatórios</button>
+    </div>
+    <div class="tab-content active" id="ftab-animals">
+      <button class="btn-add mb16" onclick="openAnimalModal()">＋ Cadastrar Animal</button>
+      <div id="farmAnimalList"></div>
+    </div>
+    <div class="tab-content" id="ftab-pasture">
+      <button class="btn-add mb16" onclick="openModule('pasture');closeFarmDetail();showPage('modules')">＋ Nova Avaliação</button>
+      <div id="farmPastureList"></div>
+    </div>
+    <div class="tab-content" id="ftab-ftasks">
+      <button class="btn-add mb16" onclick="openModal('taskModal')">＋ Nova Tarefa</button>
+      <div id="farmTaskList"></div>
+    </div>
+    <div class="tab-content" id="ftab-freports">
+      <div id="farmReportList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ANIMAL DETAIL VIEW -->
+<div id="animalDetailView" style="display:none;position:fixed;inset:0;z-index:410;background:var(--bg);overflow-y:auto;padding-bottom:20px">
+  <div style="padding:20px;max-width:700px;margin:0 auto">
+    <div class="dh">
+      <button class="back-btn" style="margin-bottom:14px;background:rgba(255,255,255,.15);color:var(--cream)" onclick="closeAnimalDetail()">← Voltar</button>
+      <h2 id="animalDetailTag"></h2>
+      <p id="animalDetailMeta"></p>
+    </div>
+    <button class="btn-add mb16" onclick="openModal('analysisModal')" style="width:100%;justify-content:center">＋ Nova Análise com IA</button>
+    <div id="evolutionBanner"></div>
+    <div id="animalTimeline"></div>
+  </div>
+</div>
+
+<!-- WORKER SCREEN -->
+<div id="workerScreen">
+  <div class="wk-hdr"><h1>🐄 PecuárIA</h1><p>Tarefa de campo</p></div>
+  <div class="wk-body">
+    <div class="wk-card">
+      <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--green);margin-bottom:10px" id="wTaskTitle">Carregando...</h2>
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:10px" id="wTaskFarm"></p>
+      <div class="alert-box alert-blue" id="wTaskDesc"></div>
+    </div>
+    <!-- Analysis steps - rendered dynamically based on task types -->
+    <div id="wAnalysisSteps"></div>
+    <div class="wk-card" id="wManualCard">
+      <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);margin-bottom:16px">Fazer Análise</h3>
+      <div class="form-row"><label>Tipo</label><select id="wAnalysisType"><option value="animal">🏷️ Identificar Animal</option><option value="pasto">🌿 Avaliar Pastagem</option><option value="contagem">📸 Contar Animais</option></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">
+        <div class="upload-zone" style="padding:20px;margin-bottom:0" >
+          <input type="file" id="wFileCamera" accept="image/*" capture="environment" onchange="workerFileSelected(this)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
+          <span class="upload-icon" style="font-size:32px">📷</span>
+          <div class="upload-txt" style="font-size:13px">Câmera</div>
+          <div class="upload-sub" style="font-size:11px">Tirar foto agora</div>
+        </div>
+        <div class="upload-zone" style="padding:20px;margin-bottom:0" >
+          <input type="file" id="wFileGallery" accept="image/*" onchange="workerFileSelected(this)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
+          <span class="upload-icon" style="font-size:32px">🖼️</span>
+          <div class="upload-txt" style="font-size:13px">Galeria</div>
+          <div class="upload-sub" style="font-size:11px">Escolher foto salva</div>
+        </div>
+      </div>
+      <input type="file" id="wFile" accept="image/*" style="display:none">
+      <div class="img-prev hidden" id="wPreview"><img id="wPreviewImg" src="" alt=""><button class="img-prev-rm" onclick="document.getElementById('wPreview').classList.add('hidden')">✕</button></div>
+      <button class="btn-primary" onclick="runWorkerAnalysis()">🔍 Analisar</button>
+      <div id="wAnalysisResult" class="mt8"></div>
+    </div>
+    <div class="wk-card">
+      <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);margin-bottom:12px">Observações</h3>
+      <textarea id="wNotes" rows="4" placeholder="Anote o que observou..." style="width:100%;padding:13px 16px;border:2px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);background:var(--cream);outline:none;resize:none;transition:border-color .2s"></textarea>
+    </div>
+    <div id="wAnalysesList"></div>
+    <button class="btn-primary" onclick="finalizeWorker()">✅ Finalizar e Enviar Relatório</button>
+    <div class="wk-footer">PecuárIA · Triade Resultado · Alexandre Amorim</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div style="font-size:44px;animation:float 1.5s ease-in-out infinite">🤖</div>
+    <p id="loadingMsg">Analisando com IA...</p>
+  </div>
+</div>
+
+<div class="toast" id="toastMsg"></div>
+
+<script>
+// ============================
+// DATA KEYS
+// ============================
+const K = {
+  users:   'pia_users',
+  farms:   'pia_farms',
+  animals: 'pia_animals',
+  tasks:   'pia_tasks',
+  reports: 'pia_reports',
+  settings:'pia_settings',
+  session: 'pia_session'
+};
+
+// ============================
+// STATE
+// ============================
+let currentUser = null;
+let currentFarmId = null;
+let currentAnimalId = null;
+let currentPersona = 'vet';
+let chatHistory = [];
+let pendingAnalysisData = null;
+let workerTask = null;
+let workerAnalyses = [];
+
+// ============================
+// STORAGE HELPERS
+// ============================
+// ── CLOUD STORAGE (Firebase + localStorage) ─────────────────────────
+let _fbDb = null;
+const FB_ROOT = 'pecuaria_app';
+
+// Firebase config embutido — altere aqui se mudar de projeto
+const _FB_CFG = {
+  apiKey: "AIzaSyCIRlj9M4ATjpJulVhskJp30dyUuodD9F4",
+  authDomain: "pecuaria-3a72f.firebaseapp.com",
+  databaseURL: "https://pecuaria-3a72f-default-rtdb.firebaseio.com",
+  projectId: "pecuaria-3a72f",
+  storageBucket: "pecuaria-3a72f.firebasestorage.app",
+  messagingSenderId: "298615934435",
+  appId: "1:298615934435:web:908d9fdd163eab4c7c64d6"
+};
+
+function _cfgLoad(k){
+  try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{ return null; }
+}
+
+function _fbInit(){
+  if(_fbDb) return;
+  try{
+    if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(_FB_CFG);
+    _fbDb = firebase.database();
+    console.log('Firebase conectado ✅');
+  }catch(e){ console.warn('Firebase init:', e.message); }
+}
+
+function ld(k){
+  try{
+    const v=localStorage.getItem(k);
+    if(v) return JSON.parse(v);
+    const s=sessionStorage.getItem(k);
+    if(s) return JSON.parse(s);
+  }catch{}
+  return null;
+}
+
+function sv(k,v){
+  const json=JSON.stringify(v);
+  try{localStorage.setItem(k,json);}catch(e){}
+  try{sessionStorage.setItem(k,json);}catch(e){}
+  // Background sync to Firebase
+  if(_fbDb){
+    _fbDb.ref(FB_ROOT+'/'+k).set(v).catch(e=>console.warn('FB write:',e.message));
+  }
+}
+
+async function syncFromCloud(){
+  _fbInit();
+  if(!_fbDb) return;
+  try{
+    const snap = await _fbDb.ref(FB_ROOT).get();
+    if(snap.exists()){
+      const data = snap.val();
+      Object.entries(data).forEach(([k,v])=>{
+        const json=JSON.stringify(v);
+        try{localStorage.setItem(k,json);}catch(e){}
+        try{sessionStorage.setItem(k,json);}catch(e){}
+      });
+      console.log('Dados sincronizados da nuvem ✅');
+    }
+  }catch(e){ console.warn('FB sync:', e.message); }
+}
+
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+// Chave API Anthropic embutida
+const _API_KEY='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';
+function getApiKey(){const s=ld(K.settings);return(s&&s.apiKey)?s.apiKey:_API_KEY;}
+
+// ============================
+// API CALL
+// ============================
+const API_URL='https://api.anthropic.com/v1/messages';
+const MODEL='claude-sonnet-4-6';
+
+async function callAPI(messages,system,apiKeyOverride){
+  const key=apiKeyOverride||getApiKey();
+  if(!key){
+    showToast('⚠️ Configure a chave API nas Configurações!','amber');
+    return null;
+  }
+  try{
+    const r=await fetch(API_URL,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({model:MODEL,max_tokens:1024,system,messages})
+    });
+    if(!r.ok){
+      let errMsg='Erro HTTP '+r.status;
+      let detail='';
+      try{const j=await r.json();errMsg=j.error?.message||errMsg;}catch{}
+      if(r.status===401)errMsg='🔑 Chave API inválida ou expirada. Recadastre-a no painel Admin.';
+      if(r.status===400)errMsg='⚠️ Erro na requisição (400). Se a chave é nova, adicione créditos em platform.anthropic.com/settings/billing — o plano gratuito não inclui uso de API.';
+      if(r.status===402||r.status===403)errMsg='💳 Sem créditos na conta Anthropic. Acesse platform.anthropic.com/settings/billing e adicione no mínimo $5.';
+      if(r.status===429)errMsg='⏳ Muitas requisições. Aguarde 30 segundos e tente novamente.';
+      if(r.status===529||r.status===500)errMsg='🔄 API sobrecarregada. Tente em instantes.';
+      throw new Error(errMsg);
+    }
+    const data=await r.json();
+    if(data.error){throw new Error(data.error.message);}
+    return data.content.map(b=>b.text||'').join('');
+  }catch(e){
+    if(e.name==='TypeError'||e.message.includes('fetch')||e.message.includes('Failed')){
+      throw new Error('Erro de conexão. Verifique: 1) Internet ativa 2) Chave API salva nas Configurações 3) Tente recarregar a página.');
+    }
+    throw e;
+  }
+}
+
+function fileToB64(file){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        // Max 800px, always JPEG for compatibility
+        const MAX=800;
+        let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){
+          const ratio=Math.min(MAX/w,MAX/h);
+          w=Math.round(w*ratio);h=Math.round(h*ratio);
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url);
+        const dataUrl=canvas.toDataURL('image/jpeg',0.72);
+        res(dataUrl.split(',')[1]);
+      }catch(err){
+        URL.revokeObjectURL(url);
+        const r=new FileReader();
+        r.onload=()=>res(r.result.split(',')[1]);
+        r.onerror=rej;
+        r.readAsDataURL(file);
+      }
+    };
+    img.onerror=()=>{
+      URL.revokeObjectURL(url);
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(',')[1]);
+      r.onerror=rej;
+      r.readAsDataURL(file);
+    };
+    img.src=url;
+  });
+}
+
+function fileToDataURL(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ============================
+// UI HELPERS
+// ============================
+function showLoading(msg='Analisando com IA...'){
+  document.getElementById('loadingMsg').textContent=msg;
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active');}
+
+function openModal(id){
+  if(id==='taskModal'){
+    try{
+      const farms=getUserFarms();
+      const sel=document.getElementById('taskFarm');
+      if(sel)sel.innerHTML=farms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+    }catch(e){}
+  }
+  const el=document.getElementById(id);
+  if(el){
+    el.style.display='flex';
+    el.classList.add('active');
+  }
+}
+function closeModal(id){
+  const el=document.getElementById(id);
+  if(el){
+    el.classList.remove('active');
+    el.style.display='';
+  }
+}
+
+function previewImg(input,previewDivId,uploadInnerId){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const div=document.getElementById(previewDivId);
+    if(!div) return;
+    div.classList.remove('hidden');
+    const img=div.querySelector('img');
+    if(img) img.src=e.target.result;
+    if(uploadInnerId){
+      const zone=document.getElementById(uploadInnerId);
+      if(zone) zone.style.display='none';
+    }
+  };
+  reader.onerror=()=>showToast('❌ Erro ao ler imagem. Tente outra.','red');
+  reader.readAsDataURL(file);
+}
+
+function removeImg(previewId,fileId,uploadId){
+  document.getElementById(previewId).classList.add('hidden');
+  if(fileId){const f=document.getElementById(fileId);f.value='';}
+  if(uploadId)document.getElementById(uploadId).style.display='block';
+  const inner=document.getElementById(previewId)?.previousElementSibling;
+  if(inner)inner.style.display='block';
+}
+
+function stars(n){
+  return '★'.repeat(Math.min(Math.round(n),5))+'☆'.repeat(Math.max(0,5-Math.round(n)));
+}
+
+function padraoBadge(p){
+  const m={acima:'padrao-acima',dentro:'padrao-dentro',abaixo:'padrao-abaixo'};
+  const l={acima:'Acima do padrão',dentro:'Dentro do padrão',abaixo:'Abaixo do padrão'};
+  return `<span class="padrao-badge ${m[p]||'padrao-dentro'}">${l[p]||p}</span>`;
+}
+
+function fmtDate(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function parseJSON(raw){
+  try{
+    let s=raw.trim();
+    s=s.replace(/```json\n?/g,'').replace(/```\n?/g,'');
+    return JSON.parse(s);
+  }catch{
+    // Try to extract JSON
+    const m=raw.match(/\{[\s\S]*\}/);
+    if(m)try{return JSON.parse(m[0]);}catch{}
+    return null;
+  }
+}
+
+// ============================
+// WORKER DETECTION
+// ============================
+function checkWorker(){
+  if(window.location.hash.startsWith('#worker=')){
+    const encoded=window.location.hash.replace('#worker=','');
+    try{
+      workerTask=JSON.parse(decodeURIComponent(atob(encoded)));
+      showWorkerScreen();
+      return true;
+    }catch(e){
+      alert('Link de tarefa inválido.');
+      return false;
+    }
+  }
+  return false;
+}
+
+function showWorkerScreen(){
+  document.getElementById('loginScreen').style.display='none';
+  const appEl=document.getElementById('app');
+  if(appEl)appEl.style.display='none';
+  document.getElementById('workerScreen').classList.add('active');
+  document.getElementById('wTaskTitle').textContent=workerTask.titulo||'Tarefa de campo';
+  document.getElementById('wTaskFarm').textContent='📍 '+workerTask.fazenda;
+
+  // Build instructions from types
+  const tipos=(workerTask.tipos&&workerTask.tipos.length)?workerTask.tipos:['animal'];
+  const tipoLabels={animal:'🏷️ Identificar Animal (raça, peso, saúde)',contagem:'📸 Contar animais no curral/pasto',pasto:'🌿 Avaliar qualidade da pastagem'};
+  let descHtml=workerTask.desc?`<strong>Instruções:</strong> ${workerTask.desc}<br><br>`:'';
+  descHtml+=`<strong>Análises solicitadas:</strong><br>`+tipos.map(t=>`• ${tipoLabels[t]||t}`).join('<br>');
+  document.getElementById('wTaskDesc').innerHTML=descHtml;
+
+  // Render dynamic analysis step cards
+  const stepsEl=document.getElementById('wAnalysisSteps');
+  const manualCard=document.getElementById('wManualCard');
+  if(stepsEl && tipos.length>0){
+    stepsEl.innerHTML=tipos.map((tipo,i)=>{
+      const labels={animal:{icon:'🏷️',title:'Identificar Animal',sub:'Foto lateral ou frontal — mostrando o corpo inteiro'},contagem:{icon:'📸',title:'Contagem de Rebanho',sub:'Foto aérea ou de cima do curral/pasto'},pasto:{icon:'🌿',title:'Avaliação de Pastagem',sub:'Foto da área representativa do pasto'}};
+      const l=labels[tipo]||{icon:'📷',title:tipo,sub:'Tire uma foto'};
+      return `<div class="wk-card" id="wStep_${tipo}">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--leaf));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${l.icon}</div>
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--green)">Passo ${i+1}: ${l.title}</div>
+            <div style="font-size:12px;color:var(--text-light)">${l.sub}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <label for="wStep${tipo}Camera" style="display:block;text-align:center;padding:18px;background:var(--cream);border:2px dashed rgba(45,107,69,.28);border-radius:20px;cursor:pointer;transition:all .22s">
+            <input type="file" id="wStep${tipo}Camera" accept="image/*" capture="environment" onchange="wStepPreview(this,'${tipo}')" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
+            <span style="font-size:28px;display:block;margin-bottom:4px">📷</span>
+            <div style="font-size:12px;font-weight:700;color:var(--green)">Câmera</div>
+          </label>
+          <label for="wStep${tipo}Gallery" style="display:block;text-align:center;padding:18px;background:var(--cream);border:2px dashed rgba(45,107,69,.28);border-radius:20px;cursor:pointer;transition:all .22s">
+            <input type="file" id="wStep${tipo}Gallery" accept="image/*" onchange="wStepPreview(this,'${tipo}')" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5">
+            <span style="font-size:28px;display:block;margin-bottom:4px">🖼️</span>
+            <div style="font-size:12px;font-weight:700;color:var(--green)">Galeria</div>
+          </label>
+        </div>
+        <div class="img-prev hidden" id="wStepPrev_${tipo}">
+          <img id="wStepPrevImg_${tipo}" src="" style="width:100%;border-radius:14px;display:block;max-height:260px;object-fit:contain;background:#f5f0e8">
+          <button class="img-prev-rm" onclick="document.getElementById('wStepPrev_${tipo}').classList.add('hidden')">✕</button>
+        </div>
+        <div id="wStepResult_${tipo}" class="mt8"></div>
+        <button class="btn-primary mt8" onclick="runStepAnalysis('${tipo}')">🔍 Analisar</button>
+      </div>`;
+    }).join('');
+    if(manualCard)manualCard.style.display='none';
+  } else {
+    if(manualCard)manualCard.style.display='block';
+  }
+}
+
+function workerFileSelected(input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('wPreview');
+    const img=document.getElementById('wPreviewImg');
+    if(prev) prev.classList.remove('hidden');
+    if(img) img.src=e.target.result;
+  };
+  reader.onerror=()=>showToast('❌ Erro ao ler imagem','red');
+  reader.readAsDataURL(file);
+}
+
+function workerFileSelected(input){
+  if(!input.files||!input.files[0])return;
+  const file=input.files[0];
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('wPreview');
+    const img=document.getElementById('wPreviewImg');
+    if(prev&&img){
+      img.src=e.target.result;
+      prev.classList.remove('hidden');
+    }
+    // Visual feedback on the button that was used
+    document.querySelectorAll('#wk-upload-camera,#wk-upload-gallery').forEach(el=>{
+      if(el)el.style.borderColor='var(--border)';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runWorkerAnalysis(){
+  const type=document.getElementById('wAnalysisType').value;
+  const camFile=document.getElementById('wFileCamera');
+  const galFile=document.getElementById('wFileGallery');
+  const file=(camFile&&camFile.files[0])||(galFile&&galFile.files[0]);
+  if(!file){showToast('📷 Selecione ou tire uma foto primeiro','amber');return;}
+
+  showLoading('Analisando...');
+  try{
+    const b64=await fileToB64(file);
+    const dataURL=await fileToDataURL(file);
+    let system,label;
+
+    if(type==='animal'){
+      system='Analise este bovino. SOMENTE JSON válido: {"raca":"","categoria":"novilho|vaca|touro|bezerra|novilha|boi","porte":"grande|medio|pequeno","peso_kg":0,"escore":0,"padrao":"acima|dentro|abaixo","recomendacao":"","nutricao":"","possivel_doenca":"observação ou null"}';
+      label='Identificação de Animal';
+    }else if(type==='pasto'){
+      system='Avalie esta pastagem para bovinos no semiárido baiano. SOMENTE JSON válido: {"cobertura_pct":0,"status":"otimo|bom|atencao|critico","diagnostico":"","recomendacao":"","rotacao":true,"prazo_rotacao":"Ex: 10-15 dias ou null"}';
+      label='Avaliação de Pastagem';
+    }else{
+      system='Conte os bovinos nesta imagem aérea. SOMENTE JSON válido: {"quantidade":0,"confianca":"alta|media|baixa","descricao":"","foto_adequada":true,"motivo_inadequada":""}';
+      label='Contagem de Animais';
+    }
+
+    const raw=await callAPI([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:'Analise esta imagem.'}
+    ]}],system,workerTask.apiKey);
+
+    hideLoading();
+    const res=parseJSON(raw);
+    if(!res){document.getElementById('wAnalysisResult').innerHTML='<div class="alert-box alert-red">Não foi possível analisar. Tente outra foto.</div>';return;}
+
+    workerAnalyses.push({tipo:label,data:Date.now(),resultado:res,foto:dataURL});
+    renderWorkerAnalyses();
+    document.getElementById('wAnalysisResult').innerHTML='<div class="alert-box alert-green">✅ Análise concluída! Veja abaixo.</div>';
+  }catch(e){
+    hideLoading();
+    document.getElementById('wAnalysisResult').innerHTML=`<div class="alert-box alert-red">Erro: ${e.message}</div>`;
+  }
+}
+
+function renderWorkerAnalyses(){
+  const el=document.getElementById('wAnalysesList');
+  if(!workerAnalyses.length){el.innerHTML='';return;}
+  el.innerHTML=`<div class="wk-card" style="background:linear-gradient(145deg,#0f2a1a,#1a4028);border:1px solid rgba(111,207,151,.15)">
+    <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--cream);margin-bottom:14px">✅ Análises realizadas (${workerAnalyses.length})</h3>`+
+    workerAnalyses.map((a,i)=>`
+      <div style="background:rgba(255,255,255,.08);border-radius:14px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          ${a.foto?`<img src="${a.foto}" style="width:64px;height:64px;border-radius:10px;object-fit:contain;background:#f5f0e8;flex-shrink:0">`:''}
+          <div><div style="font-weight:800;font-size:14px;color:var(--cream)">${a.tipo}</div><div style="font-size:11px;color:rgba(247,242,232,.5)">${fmtDate(a.data)}</div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px">
+          ${formatResultTableDark(a.resultado)}
+        </div>
+      </div>`).join('')+'</div>';
+}
+
+function formatResultTableDark(res){
+  if(!res)return'';
+  const skip=['null','null ou observacao','null ou motivo'];
+  return Object.entries(res)
+    .filter(([k,v])=>v!==null&&v!==''&&v!==undefined&&!skip.includes(String(v)))
+    .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px">
+      <span style="color:rgba(247,242,232,.5)">${k.replace(/_/g,' ')}</span>
+      <span style="color:var(--cream);font-weight:700;text-align:right;max-width:60%">${v}</span>
+    </div>`).join('');
+}
+
+function formatResultTable(res){
+  if(!res)return'';
+  return'<table class="res-tbl">'+
+    Object.entries(res).filter(([k,v])=>v!==null&&v!=='').map(([k,v])=>
+      `<tr><td>${k}</td><td>${v}</td></tr>`).join('')+'</table>';
+}
+
+async function finalizeWorker(){
+  if(!workerAnalyses.length&&!document.getElementById('wNotes').value.trim()){
+    alert('Faça pelo menos uma análise ou adicione observações.');return;
+  }
+  const notas=document.getElementById('wNotes').value;
+  const result={notas,analises:workerAnalyses,data:Date.now()};
+
+  // Try to save to localStorage (same device flow)
+  const tasks=ld(K.tasks)||[];
+  const idx=tasks.findIndex(t=>t.id===workerTask.id);
+  if(idx>=0){
+    tasks[idx].status='concluida';
+    tasks[idx].results=result;
+    sv(K.tasks,tasks);
+  }
+
+  // Generate PDF
+  const body='<h3>Informações da Tarefa</h3>'+
+    `<p><strong>Responsável:</strong> ${workerTask.responsavel}</p>`+
+    `<p><strong>Fazenda:</strong> ${workerTask.fazenda}</p>`+
+    `<p><strong>Instruções:</strong> ${workerTask.desc||'—'}</p>`+
+    '<h3>Observações de Campo</h3>'+`<p>${notas||'Nenhuma observação.'}</p>`+
+    '<h3>Análises Realizadas</h3>'+
+    workerAnalyses.map(a=>`<h4>${a.tipo}</h4>${formatResultTable(a.resultado)}`).join('');
+
+  openPDFWindow(workerTask.titulo,workerTask.fazenda,new Date().toLocaleDateString('pt-BR'),body);
+  alert('Tarefa finalizada! O relatório PDF está sendo gerado.');
+}
+
+// ============================
+// PDF GENERATION
+// ============================
+function openPDFWindow(titulo,fazenda,data,body,farmId){
+  const w=window.open('','_blank');
+  if(!w){showToast('⚠️ Permita pop-ups para gerar PDF','amber');return;}
+
+  // Get farm logo if available
+  const farms=ld(K.farms)||[];
+  const fId=farmId||(currentFarmId)||null;
+  const farm=fId?farms.find(f=>f.id===fId):farms.find(f=>f.name===fazenda);
+  const logoHtml=farm&&farm.logo?`<img src="${farm.logo}" style="width:80px;height:80px;border-radius:14px;object-fit:cover;float:left;margin-right:16px;margin-bottom:8px">`:'';
+
+  w.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8"><title>${titulo}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:Georgia,serif;padding:32px 40px;max-width:720px;margin:0 auto;color:#1a1a1a;background:#fff}
+      .report-header{display:flex;align-items:center;gap:16px;padding-bottom:16px;border-bottom:3px solid #1E4230;margin-bottom:24px}
+      .report-header-text h1{color:#1E4230;font-size:22px;margin:0 0 4px}
+      .report-header-text p{color:#666;font-size:13px;margin:0}
+      h3{color:#2D6B45;margin:20px 0 8px;font-size:15px;border-left:3px solid #C8973D;padding-left:10px}
+      h4{color:#1E4230;font-size:13px;margin:12px 0 5px}
+      .big{font-size:64px;font-weight:900;color:#1E4230;text-align:center;margin:20px 0;font-family:serif}
+      table{border-collapse:collapse;width:100%;margin-bottom:12px}
+      th,td{border:1px solid #ddd;padding:8px 12px;font-size:13px}
+      th{background:#f0f7f2;color:#1E4230;font-weight:700}
+      p{line-height:1.7;margin:6px 0;font-size:14px}
+      .foot{margin-top:32px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:12px;text-align:center;clear:both}
+      img{max-width:180px;border-radius:8px;margin:6px 0}
+      .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700}
+      .badge-green{background:#d4edda;color:#155724}
+      .badge-amber{background:#fff3cd;color:#856404}
+      .badge-red{background:#f8d7da;color:#721c24}
+      @media print{body{padding:16px}}
+    </style></head><body>
+    <div class="report-header">
+      ${logoHtml}
+      <div class="report-header-text">
+        <h1>🐄 ${titulo}</h1>
+        <p><strong>Fazenda:</strong> ${fazenda} &nbsp;·&nbsp; <strong>Data:</strong> ${data}</p>
+      </div>
+    </div>
+    ${body}
+    <div class="foot" style="clear:both">Gerado por PecuárIA · Triade Resultado · Alexandre Amorim · Itapetinga, BA</div>
+    </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),700);
+}
+
+// ============================
+// AUTH — LOGIN ÚNICO (admin ou cliente)
+// ============================
+
+// Credenciais do administrador (Alexandre Amorim / Triade Resultado)
+// Para alterar: mude os valores abaixo antes de subir no Vercel
+const ADMIN_EMAIL = 'admin@triade.com.br';
+const ADMIN_PASS  = 'Triade@2025';
+
+function showLogin(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('adminScreen').style.display='none';
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPass').value='';
+}
+
+// Uma única função de login — detecta admin ou cliente automaticamente
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('loginPass').value;
+  const err=document.getElementById('loginError');
+  err.style.display='none';
+  if(!email||!pass){err.textContent='Preencha todos os campos.';err.style.display='block';return;}
+
+  // Visual feedback
+  const btn=document.getElementById('loginBtn');
+  if(btn){btn.textContent='Entrando...';btn.disabled=true;}
+  
+  setTimeout(()=>{
+    if(btn){btn.textContent='Entrar';btn.disabled=false;}
+  }, 3000);
+
+  // Admin login
+  if(email===ADMIN_EMAIL && pass===ADMIN_PASS){
+    document.getElementById('loginScreen').style.display='none';
+    renderAdminPanel();
+    document.getElementById('adminScreen').style.display='block';
+    if(btn){btn.textContent='Entrar';btn.disabled=false;}
+    return;
+  }
+
+  // Client login
+  const users=ld(K.users)||[];
+  const user=users.find(u=>u.email===email&&u.pass===pass&&u.role==='owner');
+  if(!user){err.textContent='E-mail ou senha incorretos.';err.style.display='block';return;}
+
+  // Blocked?
+  if(user.status==='blocked'){
+    err.style.cssText='display:block;background:rgba(192,57,43,.1);color:var(--red);border-left:3px solid var(--red);border-radius:12px;padding:10px 14px;font-weight:600;font-size:13px;margin-bottom:12px';
+    err.textContent='🔒 Acesso bloqueado. Entre em contato com seu gestor.';
+    return;
+  }
+
+  // Expired? Warn but allow
+  if(user.expiryDate && new Date(user.expiryDate).getTime()<Date.now()){
+    err.style.cssText='display:block;background:rgba(230,126,34,.1);color:var(--amber);border-left:3px solid var(--amber);border-radius:12px;padding:10px 14px;font-weight:600;font-size:13px;margin-bottom:12px';
+    err.textContent='⚠️ Plano vencido em '+new Date(user.expiryDate).toLocaleDateString('pt-BR')+'. Renove para acesso completo.';
+  }
+
+  initApp(user);
+  // Show farm logo on login
+  setTimeout(()=>{
+    const userFarms=(ld(K.farms)||[]).filter(f=>f.ownerId===user.id);
+    if(userFarms.length&&userFarms[0].logo){
+      showFarmLoginLogo(userFarms[0].logo,userFarms[0].name);
+    }
+  },100);
+}
+
+function exitAdmin(){
+  document.getElementById('adminScreen').style.display='none';
+  showLogin();
+}
+
+// ── ADMIN PANEL ──────────────────────────────────────────────
+
+// ── Logo helpers ─────────────────────────────────────────────
+function previewLogo(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    document.getElementById('ncLogoImg').src=e.target.result;
+    document.getElementById('ncLogoPreview').style.display='flex';
+    document.getElementById('ncLogoEmpty').style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+function removeLogo(){
+  document.getElementById('ncLogoFile').value='';
+  document.getElementById('ncLogoImg').src='';
+  document.getElementById('ncLogoPreview').style.display='none';
+  document.getElementById('ncLogoEmpty').style.display='block';
+}
+function previewEditLogo(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    document.getElementById('ecLogoImg').src=e.target.result;
+    document.getElementById('ecLogoPreview').style.display='flex';
+    document.getElementById('ecLogoEmpty').style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+function removeEditLogo(){
+  document.getElementById('ecLogoFile').value='';
+  document.getElementById('ecLogoImg').src='';
+  document.getElementById('ecLogoPreview').style.display='none';
+  document.getElementById('ecLogoEmpty').style.display='block';
+}
+
+// ── Detect client branding on login ──────────────────────────
+function detectClientBranding(email){
+  const users=ld(K.users)||[];
+  const u=users.find(x=>x.email===email.trim().toLowerCase()&&x.role==='owner');
+  const branding=document.getElementById('clientBranding');
+  const logo=document.getElementById('loginScreen');
+  if(u&&(u.company||u.logo)){
+    document.getElementById('clientCompanyName').textContent=u.company||u.name;
+    const img=document.getElementById('clientLogoImg');
+    if(u.logo){img.src=u.logo;img.style.display='block';}
+    else img.style.display='none';
+    branding.style.display='block';
+    // Hide default PecuárIA logo
+    const defLogo=document.querySelector('.login-logo');
+    if(defLogo)defLogo.style.display='none';
+  }else{
+    branding.style.display='none';
+    const defLogo=document.querySelector('.login-logo');
+    if(defLogo)defLogo.style.display='block';
+  }
+}
+
+// ── Render admin panel ────────────────────────────────────────
+function renderAdminPanel(){
+  const users=(ld(K.users)||[]).filter(u=>u.role==='owner');
+  const farms=ld(K.farms)||[];
+  const animals=ld(K.animals)||[];
+  const now=Date.now();
+
+  document.getElementById('adminStats').innerHTML=`
+    <div class="adm-stat"><div class="adm-stat-val">${users.length}</div><div class="adm-stat-lbl">👤 Clientes</div></div>
+    <div class="adm-stat"><div class="adm-stat-val">${users.filter(u=>u.status!=='blocked').length}</div><div class="adm-stat-lbl">✅ Ativos</div></div>`;
+
+  const apiKey=getApiKey();
+  if(apiKey)document.getElementById('adminApiKeyInput').value=apiKey;
+
+  const el=document.getElementById('adminClientList');
+  if(!users.length){
+    el.innerHTML=`<div style="background:linear-gradient(145deg,var(--forest),#1a3b28);border-radius:22px;padding:40px 24px;text-align:center;box-shadow:0 8px 32px rgba(18,37,24,.22)">
+      <div style="margin-bottom:18px">
+        <svg viewBox="0 0 160 100" width="160" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="35" r="18" fill="rgba(200,151,61,.25)"/>
+          <rect x="32" y="50" width="36" height="32" rx="6" fill="rgba(200,151,61,.2)"/>
+          <circle cx="110" cy="35" r="18" fill="rgba(247,242,232,.1)"/>
+          <rect x="92" y="50" width="36" height="32" rx="6" fill="rgba(247,242,232,.08)"/>
+          <circle cx="80" cy="28" r="20" fill="rgba(200,151,61,.35)"/>
+          <rect x="60" y="46" width="40" height="36" rx="6" fill="rgba(200,151,61,.3)"/>
+          <path d="M20 88 Q80 75 140 88" stroke="rgba(200,151,61,.3)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);font-weight:700;margin-bottom:8px">Nenhum cliente ainda</div>
+      <div style="color:rgba(247,242,232,.5);font-size:13px;line-height:1.7;margin-bottom:22px">Cadastre produtores rurais e envie<br>o acesso direto pelo WhatsApp.</div>
+      <button onclick="openModal('adminNewClientModal')" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);border:none;border-radius:14px;padding:13px 30px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(200,151,61,.4)">
+        ＋ Cadastrar primeiro cliente
+      </button>
+    </div>`;
+    return;
+  }
+
+  const colors=['#2D6B45','#1F6A9A','#C8973D','#C0392B','#8E44AD','#16A085'];
+  el.innerHTML=users.map((u,i)=>{
+    const nFarms=farms.filter(f=>f.ownerId===u.id).length;
+    const nAnimals=animals.filter(a=>farms.find(f=>f.ownerId===u.id&&f.id===a.farmId)).length;
+    const color=colors[i%colors.length];
+    const blocked=u.status==='blocked';
+    const expired=u.expiryDate&&new Date(u.expiryDate).getTime()<now;
+    let statusBadge='';
+    if(blocked)statusBadge=`<span style="background:rgba(192,57,43,.15);color:var(--red);font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:8px">🔒 BLOQUEADO</span>`;
+    else if(expired)statusBadge=`<span style="background:rgba(230,126,34,.15);color:var(--amber);font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:8px">⚠️ VENCIDO</span>`;
+    else statusBadge=`<span style="background:rgba(45,107,69,.15);color:var(--leaf);font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:8px">✅ ATIVO</span>`;
+
+    return`<div class="cli-card" onclick="openClientDetail('${u.id}')">
+      <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${color}">
+        ${u.logo?`<img src="${u.logo}" style="width:100%;height:100%;object-fit:contain">`:`<span style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff">${u.name.charAt(0).toUpperCase()}</span>`}
+      </div>
+      <div class="cli-info">
+        <div class="cli-name">${u.name}${statusBadge}</div>
+        ${u.company?`<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:2px">🏢 ${u.company}</div>`:''}
+        <div class="cli-email">${u.email}</div>
+        <div class="cli-badges">
+          <span class="fbadge">🏡 ${nFarms} fazenda${nFarms!==1?'s':''}</span>
+          <span class="fbadge">🐄 ${nAnimals} animais</span>
+          ${u.expiryDate?`<span class="fbadge ${expired?'fbadge-gold':''}">📅 ${new Date(u.expiryDate).toLocaleDateString('pt-BR')}</span>`:''}
+        </div>
+      </div>
+      <div class="cli-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAdminKey(){
+  const inp=document.getElementById('adminApiKeyInput');
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+function openClientDetail(userId){
+  const users=ld(K.users)||[];
+  const u=users.find(x=>x.id===userId);
+  if(!u)return;
+  const farms=(ld(K.farms)||[]).filter(f=>f.ownerId===userId);
+  const animals=(ld(K.animals)||[]).filter(a=>farms.some(f=>f.id===a.farmId));
+  const blocked=u.status==='blocked';
+  const expired=u.expiryDate&&new Date(u.expiryDate).getTime()<Date.now();
+
+  // Avatar / Logo
+  if(u.logo){
+    document.getElementById('acdLogo').src=u.logo;
+    document.getElementById('acdLogo').style.display='block';
+    document.getElementById('acdAvatar').style.display='none';
+  }else{
+    document.getElementById('acdLogo').style.display='none';
+    document.getElementById('acdAvatar').style.display='flex';
+    document.getElementById('acdAvatar').textContent=u.name.charAt(0).toUpperCase();
+  }
+  document.getElementById('acdTitle').textContent=u.company||u.name;
+  document.getElementById('acdSubtitle').textContent=u.name+(u.expiryDate?' · Vence '+new Date(u.expiryDate).toLocaleDateString('pt-BR'):'');
+
+  let statusHtml='';
+  if(blocked)statusHtml=`<span style="background:rgba(192,57,43,.15);color:var(--red);font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px">🔒 Acesso bloqueado</span>`;
+  else if(expired)statusHtml=`<span style="background:rgba(230,126,34,.15);color:var(--amber);font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px">⚠️ Plano vencido</span>`;
+  else statusHtml=`<span style="background:rgba(45,107,69,.15);color:var(--leaf);font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px">✅ Ativo</span>`;
+  document.getElementById('acdStatusBadge').innerHTML=statusHtml;
+
+  document.getElementById('acdBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--cream);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--green);font-weight:700">${farms.length}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:2px">Fazendas</div>
+      </div>
+      <div style="background:var(--cream);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--green);font-weight:700">${animals.length}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:2px">Animais</div>
+      </div>
+      <div style="background:var(--cream);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${blocked?'var(--red)':expired?'var(--amber)':'var(--leaf)'}">${blocked?'🔒':expired?'⏰':'✓'}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:2px">${blocked?'Bloqueado':expired?'Vencido':'Ativo'}</div>
+      </div>
+    </div>
+
+    <div style="background:var(--forest);border-radius:16px;padding:16px;margin-bottom:14px">
+      <div style="font-size:10px;color:rgba(200,151,61,.75);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📱 Dados de acesso</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+        <span style="font-size:12px;color:rgba(247,242,232,.45)">Login</span>
+        <span style="font-size:13px;color:var(--cream);font-weight:700">${u.email}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">
+        <span style="font-size:12px;color:rgba(247,242,232,.45)">Senha</span>
+        <span style="font-size:13px;color:var(--gold-light);font-weight:700;font-family:monospace">${u.pass}</span>
+      </div>
+    </div>
+
+    <button onclick="copyClientCreds('${u.email}','${u.pass}','${(u.company||u.name).replace(/'/g,"&#39;")}')" style="width:100%;padding:13px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px">
+      📱 Enviar acesso pelo WhatsApp
+    </button>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button onclick="openEditClient('${u.id}')" style="padding:12px;background:rgba(31,106,154,.1);color:var(--blue);border:1.5px solid rgba(31,106,154,.2);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
+        ✏️ Editar
+      </button>
+      <button onclick="toggleBlockClient('${u.id}')" style="padding:12px;background:${blocked?'rgba(45,107,69,.1)':'rgba(192,57,43,.1)'};color:${blocked?'var(--leaf)':'var(--red)'};border:1.5px solid ${blocked?'rgba(45,107,69,.2)':'rgba(192,57,43,.2)'};border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
+        ${blocked?'🔓 Liberar acesso':'🔒 Bloquear acesso'}
+      </button>
+    </div>
+    <button onclick="deleteClient('${u.id}')" style="width:100%;margin-top:8px;padding:11px;background:rgba(192,57,43,.06);color:rgba(192,57,43,.7);border:1px solid rgba(192,57,43,.15);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+      🗑️ Excluir cliente permanentemente
+    </button>`;
+  openModal('adminClientDetailModal');
+}
+
+function toggleBlockClient(userId){
+  const users=ld(K.users)||[];
+  const idx=users.findIndex(u=>u.id===userId);
+  if(idx<0)return;
+  const wasBlocked=users[idx].status==='blocked';
+  users[idx].status=wasBlocked?'active':'blocked';
+  sv(K.users,users);
+  const msg=wasBlocked?'✅ Cliente desbloqueado!':'🔒 Cliente bloqueado!';
+  showToast(msg,wasBlocked?'green':'amber');
+  closeModal('adminClientDetailModal');
+  renderAdminPanel();
+}
+
+function openEditClient(userId){
+  const users=ld(K.users)||[];
+  const u=users.find(x=>x.id===userId);
+  if(!u)return;
+  document.getElementById('ecId').value=u.id;
+  document.getElementById('ecName').value=u.name;
+  document.getElementById('ecCompany').value=u.company||'';
+  document.getElementById('ecEmail').value=u.email;
+  document.getElementById('ecPass').value=u.pass;
+  document.getElementById('ecExpiry').value=u.expiryDate||'';
+  if(u.logo){
+    document.getElementById('ecLogoImg').src=u.logo;
+    document.getElementById('ecLogoPreview').style.display='flex';
+    document.getElementById('ecLogoEmpty').style.display='none';
+  }else{
+    document.getElementById('ecLogoPreview').style.display='none';
+    document.getElementById('ecLogoEmpty').style.display='block';
+  }
+  closeModal('adminClientDetailModal');
+  openModal('adminEditClientModal');
+}
+
+function saveEditClient(){
+  const id=document.getElementById('ecId').value;
+  const users=ld(K.users)||[];
+  const idx=users.findIndex(u=>u.id===id);
+  if(idx<0)return;
+  users[idx].name=document.getElementById('ecName').value.trim();
+  users[idx].company=document.getElementById('ecCompany').value.trim();
+  users[idx].email=document.getElementById('ecEmail').value.trim().toLowerCase();
+  users[idx].pass=document.getElementById('ecPass').value.trim();
+  users[idx].expiryDate=document.getElementById('ecExpiry').value;
+  const newLogo=document.getElementById('ecLogoImg').src;
+  if(newLogo&&newLogo!==window.location.href)users[idx].logo=newLogo;
+  else if(!document.getElementById('ecLogoPreview').style.display||document.getElementById('ecLogoPreview').style.display==='none')users[idx].logo='';
+  sv(K.users,users);
+  showToast('✅ Cliente atualizado!','green');
+  closeModal('adminEditClientModal');
+  renderAdminPanel();
+}
+
+function createClient(){
+  const name=document.getElementById('ncName').value.trim();
+  const company=document.getElementById('ncCompany').value.trim();
+  const email=document.getElementById('ncEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('ncPass').value.trim();
+  const farm=document.getElementById('ncFarm').value.trim();
+  const expiry=document.getElementById('ncExpiry').value;
+  const err=document.getElementById('newClientError');
+  err.style.display='none';
+  if(!name||!email||!pass||!farm){err.textContent='Preencha nome, e-mail, senha e fazenda.';err.style.display='block';return;}
+  const users=ld(K.users)||[];
+  if(users.find(u=>u.email===email)){err.textContent='Este e-mail já está cadastrado.';err.style.display='block';return;}
+  // Get logo
+  const logoImg=document.getElementById('ncLogoImg');
+  const logo=logoImg&&logoImg.src&&logoImg.src!==window.location.href?logoImg.src:'';
+  const userId=uid();
+  users.push({id:userId,name,company,email,pass,role:'owner',status:'active',logo,expiryDate:expiry,createdAt:Date.now()});
+  sv(K.users,users);
+  const farms=ld(K.farms)||[];
+  farms.push({id:uid(),name:farm,loc:'',ownerId:userId,createdAt:Date.now()});
+  sv(K.farms,farms);
+  // Show success
+  document.getElementById('ncSuccessMsg').style.display='block';
+  document.getElementById('ncSuccessMsg').innerHTML=`<div class="alert-box alert-green">
+    ✅ <strong>${company||name}</strong> cadastrado!<br>
+    <span style="font-size:12px">Login: <strong>${email}</strong> · Senha: <strong>${pass}</strong></span>
+  </div>`;
+  // Reset form
+  ['ncName','ncCompany','ncEmail','ncPass','ncFarm','ncExpiry'].forEach(id=>{document.getElementById(id).value='';});
+  removeLogo();
+  renderAdminPanel();
+}
+
+function copyClientCreds(email,pass,company){
+  const text=`Olá! Seu acesso ao *PecuárIA* está pronto:\n\n🏢 *${company}*\n🔐 Login: ${email}\n🔑 Senha: ${pass}\n\nAcesse pelo link do seu app e entre com esses dados.\nDúvidas? Me chame aqui.`;
+  navigator.clipboard.writeText(text).then(()=>showToast('✅ Dados copiados!','green')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Copiado!','green');
+  });
+}
+
+function deleteClient(userId){
+  if(!confirm('EXCLUIR este cliente permanentemente?\nTodos os dados, fazendas e animais serão removidos.'))return;
+  let users=(ld(K.users)||[]).filter(u=>u.id!==userId);
+  sv(K.users,users);
+  const remainFarmIds=(ld(K.farms)||[]).filter(f=>f.ownerId!==userId).map(f=>f.id);
+  sv(K.farms,(ld(K.farms)||[]).filter(f=>f.ownerId!==userId));
+  sv(K.animals,(ld(K.animals)||[]).filter(a=>remainFarmIds.includes(a.farmId)));
+  closeModal('adminClientDetailModal');
+  showToast('✅ Cliente excluído','green');
+  renderAdminPanel();
+}
+
+function saveAdminApiKey(){
+  const key=document.getElementById('adminApiKeyInput').value.trim();
+  if(!key.startsWith('sk-ant-')){showToast('⚠️ Chave inválida — deve começar com sk-ant-','amber');return;}
+  try{
+    sv(K.settings,{apiKey:key});
+    const check=ld(K.settings);
+    if(check&&check.apiKey===key){showToast('✅ Chave API salva!','green');}
+    else{showToast('⚠️ Erro ao salvar. Recarregue.','amber');}
+  }catch(e){showToast('Erro: '+e.message,'amber');}
+}
+
+function doLogout(){
+  if(!confirm('Deseja sair da conta?'))return;
+  localStorage.removeItem(K.session);
+  currentUser=null;
+  document.getElementById('app').classList.remove('active');
+  showLogin();
+}
+
+
+// ============================
+// APP INIT
+// ============================
+
+
+// ============================
+// NAVIGATION
+// ============================
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item,.sb-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+name);
+  if(pg)pg.classList.add('active');
+  document.querySelectorAll('[data-page="'+name+'"]').forEach(n=>n.classList.add('active'));
+  const titles={home:'Início',modules:'Módulos IA',tasks:'Tarefas',reports:'Relatórios',config:'Configurações'};
+  const tb=document.getElementById('topbarTitle');if(tb)tb.textContent=titles[name]||'PecuárIA';
+  // Close mobile sidebar
+  document.querySelector('.sidebar').classList.remove('open');
+  document.querySelector('.sb-overlay').classList.remove('active');
+  if(name==='home')renderHome();
+  if(name==='tasks')renderTasks();
+  if(name==='reports')renderReports();
+  if(name==='config')renderConfig();
+  if(name==='modules'){closeModule();document.getElementById('modulesGrid').style.display='grid';}
+}
+
+// ============================
+// HOME
+// ============================
+function renderHome(){
+  if(!currentUser)return;
+  // Greet
+  const h=new Date().getHours();
+  const greets=['Boa madrugada','Bom dia','Boa tarde','Boa noite'];
+  const period=h<5?0:h<12?1:h<18?2:3;
+  document.getElementById('greetText').textContent=greets[period]+', '+currentUser.name.split(' ')[0]+'!';
+  const now=new Date();
+  document.getElementById('greetDate').textContent=now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const farms=getUserFarms();
+  const animals=ld(K.animals)||[];
+  const tasks=ld(K.tasks)||[];
+  const reports=ld(K.reports)||[];
+  const myAnimals=animals.filter(a=>farms.some(f=>f.id===a.farmId));
+  const myTasks=tasks.filter(t=>farms.some(f=>f.id===t.farmId));
+  const myReports=reports.filter(r=>r.ownerId===currentUser.id);
+  const pending=myTasks.filter(t=>t.status==='pendente').length;
+
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card" style="background:linear-gradient(145deg,#0f2a1a,#1a4028);border:1px solid rgba(111,207,151,.15)">
+      <span class="stat-icon">🏡</span>
+      <div class="stat-val" style="color:#6fcf97">${farms.length}</div>
+      <div class="stat-label" style="color:rgba(111,207,151,.6)">Fazendas</div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(145deg,#0f1e30,#162840);border:1px solid rgba(126,184,224,.15)">
+      <span class="stat-icon">🐄</span>
+      <div class="stat-val" style="color:#7eb8e0">${myAnimals.length}</div>
+      <div class="stat-label" style="color:rgba(126,184,224,.6)">Animais</div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(145deg,#2a1500,#3d2000);border:1px solid rgba(243,156,18,.15)">
+      <span class="stat-icon">⏳</span>
+      <div class="stat-val" style="color:${pending>0?'#f39c12':'#888'}">${pending}</div>
+      <div class="stat-label" style="color:rgba(243,156,18,.6)">Pendentes</div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(145deg,#160f2a,#221840);border:1px solid rgba(187,141,232,.15)">
+      <span class="stat-icon">📄</span>
+      <div class="stat-val" style="color:#bb8de8">${myReports.length}</div>
+      <div class="stat-label" style="color:rgba(187,141,232,.6)">Relatórios</div>
+    </div>`;
+  const badge=document.querySelectorAll('.taskBadge')[0]||document.getElementById('taskBadge');
+  if(pending>0){badge.textContent=pending;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+
+  const farmList=document.getElementById('farmList');
+  if(!farms.length){
+    farmList.innerHTML=`<div style="background:linear-gradient(145deg,var(--forest),#1a3b28);border-radius:22px;padding:40px 24px;text-align:center;box-shadow:0 8px 32px rgba(18,37,24,.2)">
+      <div style="font-size:60px;margin-bottom:16px;display:inline-block;animation:float 3s ease-in-out infinite">🏡</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);font-weight:700;margin-bottom:8px">Bem-vindo ao PecuárIA!</div>
+      <div style="color:rgba(247,242,232,.55);font-size:13px;line-height:1.7;margin-bottom:22px">Cadastre sua fazenda para começar<br>a usar análises com IA.</div>
+      <button onclick="openModal('farmModal')" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);border:none;border-radius:14px;padding:13px 30px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(200,151,61,.4)">
+        ＋ Criar minha primeira fazenda
+      </button>
+    </div>`;
+    return;
+  }
+  farmList.innerHTML=farms.map(f=>{
+    const fAnimals=myAnimals.filter(a=>a.farmId===f.id).length;
+    const fPending=myTasks.filter(t=>t.farmId===f.id&&t.status==='pendente').length;
+    const icons=['🏡','🌾','🐄','🌿','🏕️'];
+    const ico=icons[Math.abs(f.name.charCodeAt(0))%icons.length];
+    const logoHtml=f.logo?`<img src="${f.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">`:`<span style="font-size:26px">${ico}</span>`;
+    return`<div class="farm-card" onclick="openFarmDetail('${f.id}')">
+      <div class="farm-icon" style="overflow:hidden">${logoHtml}</div>
+      <div class="farm-info">
+        <div class="farm-name">${f.name}</div>
+        ${f.loc?`<div class="farm-loc">📍 ${f.loc}</div>`:''}
+        <div class="farm-badges">
+          <span class="fbadge">🐄 ${fAnimals} animais</span>
+          ${fPending?`<span class="fbadge fbadge-gold">⏳ ${fPending} pendentes</span>`:''}
+        </div>
+      </div>
+      <div class="farm-arrow">›</div>
+    </div>`;
+  }).join('');
+
+  // Update topbar farm name
+  const firstFarm=farms[0];
+  if(firstFarm){
+    if(document.getElementById('topbarFarm'))document.getElementById('topbarFarm').textContent=firstFarm.name;
+    if(document.getElementById('sbFarm'))document.getElementById('sbFarm').textContent='📍 '+firstFarm.name;
+  }
+}
+
+function getUserFarms(){
+  const all=ld(K.farms)||[];
+  return all.filter(f=>f.ownerId===currentUser.id);
+}
+
+// ============================
+// FARM CRUD
+// ============================
+function previewFarmLogo(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('farmLogoPreview');
+    if(prev){
+      prev.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function createFarm(){
+  const name=document.getElementById('farmName').value.trim();
+  const loc=document.getElementById('farmLoc').value.trim();
+  if(!name){showToast('⚠️ Informe o nome da fazenda','amber');return;}
+
+  const logoFile=document.getElementById('farmLogoFile')?.files[0];
+  const farms=ld(K.farms)||[];
+
+  if(logoFile){
+    // Save logo as base64
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const logoB64=e.target.result;
+      farms.push({id:uid(),name,loc,ownerId:currentUser.id,logo:logoB64,createdAt:Date.now()});
+      sv(K.farms,farms);
+      resetFarmForm();
+    };
+    reader.readAsDataURL(logoFile);
+  }else{
+    farms.push({id:uid(),name,loc,ownerId:currentUser.id,logo:null,createdAt:Date.now()});
+    sv(K.farms,farms);
+    resetFarmForm();
+  }
+}
+
+function resetFarmForm(){
+  document.getElementById('farmName').value='';
+  document.getElementById('farmLoc').value='';
+  if(document.getElementById('farmLogoFile'))document.getElementById('farmLogoFile').value='';
+  const prev=document.getElementById('farmLogoPreview');
+  if(prev)prev.innerHTML='🏡';
+  closeModal('farmModal');
+  renderHome();
+  renderConfig();
+  showToast('✅ Fazenda criada!','green');
+}
+
+// ============================
+// FARM DETAIL
+// ============================
+function openFarmDetail(farmId){
+  currentFarmId=farmId;
+  const farms=ld(K.farms)||[];
+  const farm=farms.find(f=>f.id===farmId);
+  if(!farm)return;
+  document.getElementById('farmDetailName').textContent=farm.name;
+  document.getElementById('farmDetailLoc').textContent=farm.loc?'📍 '+farm.loc:'';
+  document.getElementById('topbarFarm').textContent=farm.name;
+  switchFarmTab('animals',document.querySelector('#farmTabs .tab.active'));
+  renderFarmAnimals(farmId);
+  document.getElementById('farmDetailView').style.display='block';
+}
+
+function closeFarmDetail(){
+  document.getElementById('farmDetailView').style.display='none';
+  currentFarmId=null;
+}
+
+function switchFarmTab(name,btn){
+  document.querySelectorAll('#farmTabs .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('[id^="ftab-"]').forEach(t=>t.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const tab=document.getElementById('ftab-'+name);
+  if(tab)tab.classList.add('active');
+  if(name==='animals')renderFarmAnimals(currentFarmId);
+  if(name==='pasture')renderFarmPasture(currentFarmId);
+  if(name==='ftasks')renderFarmTasks(currentFarmId);
+  if(name==='freports')renderFarmReports(currentFarmId);
+}
+
+function renderFarmAnimals(farmId){
+  const animals=(ld(K.animals)||[]).filter(a=>a.farmId===farmId);
+  const el=document.getElementById('farmAnimalList');
+  if(!animals.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">🐄</div><div class="empty-txt">Nenhum animal cadastrado.</div></div>';
+    return;
+  }
+  el.innerHTML=animals.map(a=>{
+    const hasPhoto=a.photos&&a.photos.length&&a.photos[a.photos.length-1].thumb;
+    return`<div class="animal-card" onclick="openAnimalDetail('${a.id}')">
+      <div class="animal-thumb">${hasPhoto?`<img src="${a.photos[a.photos.length-1].thumb}">`:'🐄'}</div>
+      <div class="animal-info">
+        <div class="animal-tag">${a.tag}</div>
+        <div class="animal-meta">${a.nome?a.nome+' · ':''}${a.tipo} · ${a.sexo}</div>
+      </div>
+      ${a.photos&&a.photos.length?`<div class="animal-ana">${a.photos.length} análise${a.photos.length>1?'s':''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderFarmPasture(farmId){
+  const reports=(ld(K.reports)||[]).filter(r=>r.farmId===farmId&&r.tipo==='pastagem');
+  const el=document.getElementById('farmPastureList');
+  if(!reports.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">🌿</div><div class="empty-txt">Nenhuma avaliação de pastagem.</div></div>';
+    return;
+  }
+  el.innerHTML=reports.map(r=>`
+    <div class="rep-card">
+      <div class="rep-icon">🌿</div>
+      <div class="rep-info">
+        <div class="rep-title">${r.titulo}</div>
+        <div class="rep-meta">${fmtDate(r.data)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderFarmTasks(farmId){
+  const tasks=(ld(K.tasks)||[]).filter(t=>t.farmId===farmId);
+  const el=document.getElementById('farmTaskList');
+  if(!tasks.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma tarefa.</div></div>';
+    return;
+  }
+  el.innerHTML=tasks.map(t=>`
+    <div class="task-card" onclick="openTaskDetail('${t.id}')">
+      <div class="task-top">
+        <div class="task-title">${t.titulo}</div>
+        <span class="status-badge ${t.status==='concluida'?'sbadge-done':'sbadge-pend'}">${t.status==='concluida'?'Concluída':'Pendente'}</span>
+      </div>
+      <div class="task-meta">👤 ${t.responsavel} · ${fmtDate(t.createdAt)}</div>
+    </div>`).join('');
+}
+
+function renderFarmReports(farmId){
+  const reports=(ld(K.reports)||[]).filter(r=>r.farmId===farmId);
+  const el=document.getElementById('farmReportList');
+  if(!reports.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-txt">Nenhum relatório.</div></div>';
+    return;
+  }
+  el.innerHTML=reports.map(r=>`
+    <div class="rep-card">
+      <div class="rep-icon">${r.tipo==='contagem'?'📸':r.tipo==='identificacao'?'🏷️':'🌿'}</div>
+      <div class="rep-info">
+        <div class="rep-title">${r.titulo}</div>
+        <div class="rep-meta">${fmtDate(r.data)}</div>
+      </div>
+      <div class="rep-actions">
+        <button class="btn-sm btn-amber" onclick="reportPDF('${r.id}')">PDF</button>
+      </div>
+    </div>`).join('');
+}
+
+// ============================
+// ANIMAL CRUD
+// ============================
+function openAnimalModal(){
+  if(!currentFarmId){alert('Selecione uma fazenda primeiro.');return;}
+  openModal('animalModal');
+}
+
+function createAnimal(){
+  const tag=document.getElementById('animalTag').value.trim();
+  if(!tag){alert('Informe o brinco ou identificação.');return;}
+  const animals=ld(K.animals)||[];
+  animals.push({
+    id:uid(),farmId:currentFarmId,
+    tag,nome:document.getElementById('animalName').value.trim(),
+    tipo:document.getElementById('animalType').value,
+    sexo:document.getElementById('animalSex').value,
+    photos:[],createdAt:Date.now()
+  });
+  sv(K.animals,animals);
+  document.getElementById('animalTag').value='';
+  document.getElementById('animalName').value='';
+  closeModal('animalModal');
+  renderFarmAnimals(currentFarmId);
+}
+
+// ============================
+// ANIMAL DETAIL
+// ============================
+function openAnimalDetail(animalId){
+  currentAnimalId=animalId;
+  const animals=ld(K.animals)||[];
+  const animal=animals.find(a=>a.id===animalId);
+  if(!animal)return;
+  document.getElementById('animalDetailTag').textContent=animal.tag+(animal.nome?' — '+animal.nome:'');
+  document.getElementById('animalDetailMeta').textContent=animal.tipo+' · '+animal.sexo;
+  renderAnimalDetail(animal);
+  document.getElementById('animalDetailView').style.display='block';
+}
+
+function closeAnimalDetail(){
+  document.getElementById('animalDetailView').style.display='none';
+  currentAnimalId=null;
+  // Refresh pending analysis saved state
+  document.getElementById('analysisResultArea').innerHTML='';
+  document.getElementById('saveAnalysisBtn').classList.add('hidden');
+  const f=document.getElementById('analysisFile');f.value='';
+  document.getElementById('analysisPreview').classList.add('hidden');
+  document.getElementById('analysisUploadInner').style.display='block';
+}
+
+function renderAnimalDetail(animal){
+  const photos=animal.photos||[];
+  // Evolution
+  const evEl=document.getElementById('evolutionBanner');
+  if(photos.length>=2){
+    const last=photos[photos.length-1].analysis;
+    const prev=photos[photos.length-2].analysis;
+    if(last&&prev&&last.peso_kg&&prev.peso_kg){
+      const diff=last.peso_kg-prev.peso_kg;
+      let cls,icon,msg;
+      if(diff>0){cls='alert-green';icon='📈';msg=`Animal evoluiu! Peso aumentou de ~${prev.peso_kg}kg para ~${last.peso_kg}kg`;}
+      else if(diff<0){cls='alert-amber';icon='📉';msg=`Animal perdeu peso (~${prev.peso_kg}kg → ~${last.peso_kg}kg). Verifique alimentação.`;}
+      else{cls='alert-blue';icon='➡️';msg='Animal estável em relação à última análise.';}
+      evEl.innerHTML=`<div class="alert-box ${cls}">${icon} ${msg}</div>`;
+    }else evEl.innerHTML='';
+  }else evEl.innerHTML='';
+
+  // Timeline
+  const tlEl=document.getElementById('animalTimeline');
+  if(!photos.length){
+    tlEl.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-txt">Nenhuma análise ainda.<br>Clique em "Nova Análise" para começar.</div></div>';
+    return;
+  }
+  const sorted=[...photos].reverse();
+  tlEl.innerHTML='<div class="timeline">'+sorted.map(p=>{
+    const a=p.analysis;
+    const summary=a?`${a.raca||'—'} · ${a.peso_kg?a.peso_kg+'kg':'—'} · Escore ${a.escore||'—'}`:'Análise incompleta';
+    return`<div class="timeline-item">
+      <div class="tl-dot"></div>
+      <div class="tl-card">
+        ${p.thumb?`<img class="tl-thumb" src="${p.thumb}">`:''}
+        <div class="tl-date">${fmtDate(p.id)}</div>
+        <div class="tl-sum">${summary}</div>
+        ${a&&a.recomendacao?`<div style="font-size:12px;color:var(--text-light);margin-top:4px">${a.recomendacao}</div>`:''}
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ============================
+// ANALYSIS MODAL
+// ============================
+async function runAnalysis(){
+  const file=document.getElementById('analysisFile').files[0];
+  if(!file){alert('Selecione uma foto do animal.');return;}
+  showLoading('Analisando animal...');
+  try{
+    const animals=ld(K.animals)||[];
+    const animal=animals.find(a=>a.id===currentAnimalId);
+    const tipo=animal?animal.tipo:'corte';
+    const b64=await fileToB64(file);
+    const dataURL=document.getElementById('analysisPreviewImg').src;
+    const system=`Analise este bovino de ${tipo}. SOMENTE JSON válido sem markdown: {"raca":"","categoria":"novilho|vaca|touro|bezerra|novilha|boi","porte":"grande|medio|pequeno","peso_kg":0,"escore":0,"padrao":"acima|dentro|abaixo","recomendacao":"","nutricao":"","possivel_doenca":"observação ou null"}`;
+    const raw=await callAPI([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:'Analise este animal.'}
+    ]}],system);
+    hideLoading();
+    const res=parseJSON(raw);
+    if(!res){document.getElementById('analysisResultArea').innerHTML='<div class="alert-box alert-red">Não foi possível analisar. Tente outra foto com melhor iluminação.</div>';return;}
+
+    pendingAnalysisData={analysis:res,thumb:dataURL,id:Date.now()};
+    document.getElementById('analysisResultArea').innerHTML=renderIdentifyResult(res);
+    document.getElementById('saveAnalysisBtn').classList.remove('hidden');
+  }catch(e){
+    hideLoading();
+    document.getElementById('analysisResultArea').innerHTML=`<div class="alert-box alert-red">Erro: ${e.message}</div>`;
+  }
+}
+
+function saveAnalysis(){
+  if(!pendingAnalysisData||!currentAnimalId)return;
+  const animals=ld(K.animals)||[];
+  const idx=animals.findIndex(a=>a.id===currentAnimalId);
+  if(idx<0)return;
+  animals[idx].photos.push(pendingAnalysisData);
+  sv(K.animals,animals);
+  pendingAnalysisData=null;
+  closeModal('analysisModal');
+  document.getElementById('saveAnalysisBtn').classList.add('hidden');
+  document.getElementById('analysisResultArea').innerHTML='';
+  document.getElementById('analysisFile').value='';
+  document.getElementById('analysisPreview').classList.add('hidden');
+  renderAnimalDetail(animals[idx]);
+}
+
+// ============================
+// MODULE: COUNT
+// ============================
+async function runCount(){
+  const file=document.getElementById('countFile').files[0];
+  if(!file){alert('Selecione uma foto aérea.');return;}
+  showLoading('Contando animais...');
+  try{
+    const b64=await fileToB64(file);
+    const system='Você é especialista em contagem de bovinos. Conte TODOS os animais visíveis incluindo parcialmente visíveis. RESPONDA SOMENTE com JSON válido sem markdown: {"quantidade":0,"confianca":"alta|media|baixa","descricao":"descrição dos animais","foto_adequada":true,"motivo_inadequada":"null ou motivo","animais_parciais":0}';
+    const raw=await callAPI([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:'Conte os animais nesta imagem.'}
+    ]}],system);
+    hideLoading();
+    const res=parseJSON(raw);
+    if(!res){document.getElementById('countResult').innerHTML='<div class="alert-box alert-red">Não foi possível analisar.</div>';return;}
+
+    if(!res.foto_adequada){
+      document.getElementById('countResult').innerHTML=`<div class="alert-box alert-amber">⚠️ Foto inadequada: ${res.motivo_inadequada||'Tente uma foto mais clara e de maior altitude.'}</div>`;
+      return;
+    }
+
+    const confiancaColor={alta:'alert-green',media:'alert-blue',baixa:'alert-amber'};
+    const html=`<div class="res-card">
+      <h3>Resultado da Contagem</h3>
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:72px;font-weight:900;color:var(--green);font-family:'Playfair Display',serif">${res.quantidade}</div>
+        <div style="font-size:15px;color:var(--text-light);margin-top:4px">animais identificados</div>
+      ${res.animais_parciais?`<div style="font-size:12px;color:var(--text-light);margin-top:3px">(~${res.animais_parciais} parcialmente visíveis)</div>`:''}
+      </div>
+      <div class="alert-box ${confiancaColor[res.confianca]||'alert-blue'}">🎯 <strong>Confiança: ${res.confianca?.toUpperCase()||'—'}</strong> — ${res.descricao}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-green" style="flex:1;padding:12px" onclick="countPDF(${res.quantidade},'${res.confianca}','${(res.descricao||'').replace(/'/g,'&#39;')}')">📄 Gerar PDF</button>
+      <button class="btn-sm btn-blue" style="flex:1;padding:12px" onclick="saveCountReport(${res.quantidade},'${res.confianca}','${(res.descricao||'').replace(/'/g,'&#39;')}')">💾 Salvar</button>
+    </div>`;
+    document.getElementById('countResult').innerHTML=html;
+  }catch(e){
+    hideLoading();
+    document.getElementById('countResult').innerHTML=`<div class="alert-box alert-red">Erro: ${e.message}</div>`;
+  }
+}
+
+function countPDF(qtd,confianca,desc){
+  const farm=getCurrentFarmName();
+  openPDFWindow('Contagem de Animais',farm,new Date().toLocaleDateString('pt-BR'),
+    `<div class="big">${qtd}</div>
+    <h3>Detalhes</h3>
+    <table><tr><th>Item</th><th>Valor</th></tr>
+    <tr><td>Quantidade detectada</td><td>${qtd} animais</td></tr>
+    <tr><td>Nível de confiança</td><td>${confianca?.toUpperCase()}</td></tr>
+    <tr><td>Observação</td><td>${desc}</td></tr></table>`);
+}
+
+function saveCountReport(qtd,confianca,desc){
+  const farms=getUserFarms();
+  const farmId=farms.length?farms[0].id:null;
+  const reports=ld(K.reports)||[];
+  reports.unshift({id:uid(),tipo:'contagem',titulo:`Contagem — ${qtd} animais`,farmId,ownerId:currentUser.id,data:Date.now(),payload:{qtd,confianca,desc}});
+  sv(K.reports,reports);
+  alert('Relatório salvo com sucesso!');
+}
+
+// ============================
+// MODULE: IDENTIFY
+// ============================
+async function runIdentify(){
+  const file=document.getElementById('identifyFile').files[0];
+  if(!file){alert('Selecione uma foto do animal.');return;}
+  showLoading('Identificando animal...');
+  try{
+    const tipo=document.getElementById('identifyType').value;
+    const brinco=document.getElementById('identifyBrinco').value.trim();
+    const b64=await fileToB64(file);
+    const system=`Analise este bovino de ${tipo}. SOMENTE JSON válido sem markdown: {"raca":"","categoria":"novilho|vaca|touro|bezerra|novilha|boi","porte":"grande|medio|pequeno","peso_kg":0,"escore":0,"padrao":"acima|dentro|abaixo","recomendacao":"","nutricao":"","possivel_doenca":"observação ou null"}`;
+    const raw=await callAPI([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:`Analise este animal${brinco?' (brinco: '+brinco+')':''}.`}
+    ]}],system);
+    hideLoading();
+    const res=parseJSON(raw);
+    if(!res){document.getElementById('identifyResult').innerHTML='<div class="alert-box alert-red">Não foi possível analisar. Tente outra foto.</div>';return;}
+    const html=renderIdentifyResult(res)+
+      `<div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn-sm btn-amber" style="flex:1;padding:12px" onclick="identifyPDF(${JSON.stringify(res).replace(/"/g,'&quot;')})">📄 PDF</button>
+        <button class="btn-sm btn-blue" style="flex:1;padding:12px" onclick="saveIdentifyReport(${JSON.stringify(res).replace(/"/g,'&quot;')})">💾 Salvar</button>
+      </div>`;
+    document.getElementById('identifyResult').innerHTML=html;
+  }catch(e){
+    hideLoading();
+    document.getElementById('identifyResult').innerHTML=`<div class="alert-box alert-red">Erro: ${e.message}</div>`;
+  }
+}
+
+function renderIdentifyResult(res){
+  return`<div class="res-card">
+    <h3>Resultado da Análise</h3>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      ${padraoBadge(res.padrao)}
+      <span class="stars">${stars(res.escore)}</span>
+      <span style="font-size:12px;color:var(--text-light)">Escore ${res.escore}/5</span>
+    </div>
+    <table class="res-tbl">
+      <tr><td>Raça</td><td>${res.raca||'—'}</td></tr>
+      <tr><td>Categoria</td><td>${res.categoria||'—'}</td></tr>
+      <tr><td>Sexo</td><td>${res.sexo||'—'}</td></tr>
+      <tr><td>Porte</td><td>${res.porte||'—'}</td></tr>
+      <tr><td>Peso estimado</td><td>${res.variacao_peso||(res.peso_kg?res.peso_kg+'kg':'—')}</td></tr>
+      <tr><td>Idade estimada</td><td>${res.idade_estimada||'—'}</td></tr>
+      <tr><td>Aptidão</td><td>${res.aptidao||'—'}</td></tr>
+      <tr><td>Padrão zootécnico</td><td>${res.padrao||'—'}</td></tr>
+    </table>
+  </div>
+  ${res.recomendacao?`<div class="alert-box alert-green">💡 <strong>Recomendação:</strong> ${res.recomendacao}</div>`:''}
+  ${res.nutricao?`<div class="alert-box alert-blue">🌾 <strong>Nutrição:</strong> ${res.nutricao}</div>`:''}
+  ${res.possivel_doenca&&res.possivel_doenca!=='null'&&res.possivel_doenca!=='null ou observacao'?`<div class="alert-box alert-amber">⚠️ <strong>Alerta:</strong> ${res.possivel_doenca}</div>`:''}`;
+}
+
+function identifyPDF(res){
+  const farm=getCurrentFarmName();
+  openPDFWindow('Identificação de Animal',farm,new Date().toLocaleDateString('pt-BR'),
+    `<h3>Resultado</h3>
+    <table><tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Raça</td><td>${res.raca}</td></tr>
+    <tr><td>Categoria</td><td>${res.categoria}</td></tr>
+    <tr><td>Porte</td><td>${res.porte}</td></tr>
+    <tr><td>Peso estimado</td><td>${res.peso_kg}kg</td></tr>
+    <tr><td>Escore corporal</td><td>${res.escore}/5</td></tr>
+    <tr><td>Padrão zootécnico</td><td>${res.padrao}</td></tr></table>
+    <h3>Recomendação</h3><p>${res.recomendacao}</p>
+    <h3>Sugestão Nutricional</h3><p>${res.nutricao}</p>
+    ${res.possivel_doenca&&res.possivel_doenca!=='null'?`<h3>Alerta de Saúde</h3><p>${res.possivel_doenca}</p>`:''}`);
+}
+
+function saveIdentifyReport(res){
+  const farms=getUserFarms();
+  const farmId=farms.length?farms[0].id:null;
+  const reports=ld(K.reports)||[];
+  reports.unshift({id:uid(),tipo:'identificacao',titulo:`Identificação — ${res.raca||'Animal'}`,farmId,ownerId:currentUser.id,data:Date.now(),payload:res});
+  sv(K.reports,reports);
+  alert('Relatório salvo!');
+}
+
+// ============================
+// MODULE: PASTURE
+// ============================
+async function runPasture(){
+  const file=document.getElementById('pastureFile').files[0];
+  if(!file){alert('Selecione uma foto do pasto.');return;}
+  showLoading('Avaliando pastagem...');
+  try{
+    const b64=await fileToB64(file);
+    const system='Você é agrônomo especializado em pastagens do semiárido baiano. Avalie esta pastagem com máxima precisão. SOMENTE JSON válido sem markdown: {"cobertura_pct":0,"status":"otimo|bom|atencao|critico","especie_provavel":"","altura_estimada":"","diagnostico":"","recomendacao":"","rotacao":true,"prazo_rotacao":"","adubacao":""}';
+    const raw=await callAPI([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:'Avalie esta pastagem.'}
+    ]}],system);
+    hideLoading();
+    const res=parseJSON(raw);
+    if(!res){document.getElementById('pastureResult').innerHTML='<div class="alert-box alert-red">Não foi possível analisar.</div>';return;}
+
+    const statusMap={otimo:{cls:'prog-green',icon:'✅',label:'Ótimo'},bom:{cls:'prog-blue',icon:'👍',label:'Bom'},atencao:{cls:'prog-amber',icon:'⚠️',label:'Atenção'},critico:{cls:'prog-red',icon:'🚨',label:'Crítico'}};
+    const s=statusMap[res.status]||statusMap.bom;
+    const html=`<div class="res-card">
+      <h3>Avaliação do Pasto</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-weight:700;font-size:14px;color:var(--text-mid)">Cobertura Vegetal</span>
+        <span style="font-size:20px;font-weight:900;color:var(--green)">${res.cobertura_pct}%</span>
+      </div>
+      <div class="prog-wrap">
+        <div class="progress-bar ${s.cls}" style="width:${res.cobertura_pct}%"></div>
+      </div>
+      <div style="margin-top:12px;font-size:15px;font-weight:700">${s.icon} Status: ${s.label}</div>
+    </div>
+    ${res.especie_provavel?`<div class="alert-box alert-blue">🌿 <strong>Espécie:</strong> ${res.especie_provavel}${res.altura_estimada?' — Altura: '+res.altura_estimada:''}</div>`:''}
+    <div class="alert-box alert-green">📋 <strong>Diagnóstico:</strong> ${res.diagnostico}</div>
+    <div class="alert-box alert-blue">💡 <strong>Recomendação:</strong> ${res.recomendacao}</div>
+    ${res.rotacao?`<div class="alert-box alert-amber">🔄 <strong>Rotação em:</strong> ${res.prazo_rotacao||'breve'}</div>`:''}
+    ${res.adubacao&&res.adubacao!=='null'?`<div class="alert-box alert-blue">🌱 <strong>Adubação:</strong> ${res.adubacao}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-sm btn-amber" style="flex:1;padding:12px" onclick="pasturePDF(${JSON.stringify(res).replace(/"/g,'&quot;')})">📄 PDF</button>
+      <button class="btn-sm btn-blue" style="flex:1;padding:12px" onclick="savePastureReport(${JSON.stringify(res).replace(/"/g,'&quot;')})">💾 Salvar</button>
+    </div>`;
+    document.getElementById('pastureResult').innerHTML=html;
+  }catch(e){
+    hideLoading();
+    document.getElementById('pastureResult').innerHTML=`<div class="alert-box alert-red">Erro: ${e.message}</div>`;
+  }
+}
+
+function pasturePDF(res){
+  const farm=getCurrentFarmName();
+  openPDFWindow('Avaliação de Pastagem',farm,new Date().toLocaleDateString('pt-BR'),
+    `<h3>Resultado</h3>
+    <table><tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Cobertura vegetal</td><td>${res.cobertura_pct}%</td></tr>
+    <tr><td>Status</td><td>${res.status?.toUpperCase()}</td></tr>
+    <tr><td>Rotação necessária</td><td>${res.rotacao?'Sim':'Não'}</td></tr>
+    ${res.prazo_rotacao?`<tr><td>Prazo rotação</td><td>${res.prazo_rotacao}</td></tr>`:''}</table>
+    <h3>Diagnóstico</h3><p>${res.diagnostico}</p>
+    <h3>Recomendação</h3><p>${res.recomendacao}</p>`);
+}
+
+function savePastureReport(res){
+  const farms=getUserFarms();
+  const farmId=farms.length?farms[0].id:null;
+  const reports=ld(K.reports)||[];
+  reports.unshift({id:uid(),tipo:'pastagem',titulo:`Pastagem — ${res.status?.toUpperCase()||'Avaliação'}`,farmId,ownerId:currentUser.id,data:Date.now(),payload:res});
+  sv(K.reports,reports);
+  alert('Relatório salvo!');
+}
+
+function getCurrentFarmName(){
+  if(currentFarmId){
+    const f=(ld(K.farms)||[]).find(f=>f.id===currentFarmId);
+    if(f)return f.name;
+  }
+  const farms=getUserFarms();
+  return farms.length?farms[0].name:'Fazenda';
+}
+
+// ============================
+// MODULE: CHAT
+// ============================
+const personas={
+  vet:{name:'Dr. Ricardo',role:'Veterinário especializado em bovinos do semiárido baiano',system:'Você é Dr. Ricardo, veterinário especializado em bovinos do semiárido baiano. Responda sempre em português brasileiro simples, como se estivesse falando com um produtor rural. Seja prático e direto. Se enviarem foto, analise clinicamente.'},
+  zoo:{name:'Eng. Marcos',role:'Zootecnista — Nelore e zebuínos',system:'Você é o Eng. Marcos, zootecnista especializado em raças Nelore e zebuínos, com foco em manejo e nutrição no semiárido. Responda em português simples e prático.'},
+  agr:{name:'Eng. Paulo',role:'Agrônomo — pastagens semiárido',system:'Você é o Eng. Paulo, agrônomo especializado em pastagens do semiárido, rotação e adubação. Responda de forma clara e prática para produtores rurais.'}
+};
+
+function setPersona(key,btn){
+  currentPersona=key;
+  chatHistory=[];
+  document.querySelectorAll('.persona-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  const el=document.getElementById('chatMessages');
+  const p=personas[key];
+  el.innerHTML=`<div class="msg msg-ai">Olá! Sou ${p.name}, ${p.role}. Como posso ajudar?</div>`;
+}
+
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text)return;
+  appendMsg(text,'user');
+  input.value='';
+  chatHistory.push({role:'user',content:text});
+  await doChat();
+}
+
+async function sendChatImg(inputEl){
+  const file=inputEl.files[0];
+  if(!file)return;
+  const dataURL=await fileToDataURL(file);
+  const b64=await fileToB64(file);
+  // Show image in chat
+  const msgEl=document.createElement('div');
+  msgEl.className='msg msg-user';
+  msgEl.innerHTML=`<img class="msg-img" src="${dataURL}"><br>Analise esta foto.`;
+  document.getElementById('chatMessages').appendChild(msgEl);
+  document.getElementById('chatMessages').scrollTop=999999;
+
+  chatHistory.push({role:'user',content:[
+    {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+    {type:'text',text:'Analise esta imagem e me dê orientações.'}
+  ]});
+  await doChat();
+  inputEl.value='';
+}
+
+async function doChat(){
+  const p=personas[currentPersona];
+  showLoading('Consultando especialista...');
+  try{
+    const raw=await callAPI(chatHistory,p.system);
+    hideLoading();
+    chatHistory.push({role:'assistant',content:raw});
+    appendMsg(raw,'ai');
+  }catch(e){
+    hideLoading();
+    appendMsg('Desculpe, não consegui responder agora. Tente novamente.','ai');
+  }
+}
+
+function appendMsg(text,type){
+  const el=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className=`msg msg-${type}`;
+  div.textContent=text;
+  el.appendChild(div);
+  el.scrollTop=999999;
+}
+
+// ============================
+// MODULES NAVIGATION
+// ============================
+function openModule(name){
+  document.getElementById('modulesGrid').style.display='none';
+  document.querySelectorAll('.module-content').forEach(m=>m.classList.remove('active'));
+  document.getElementById('mod-'+name).classList.add('active');
+  if(name==='chat'&&!chatHistory.length)setPersona('vet',document.querySelector('.persona-chip.active'));
+}
+
+function closeModule(){
+  document.querySelectorAll('.module-content').forEach(m=>m.classList.remove('active'));
+  document.getElementById('modulesGrid').style.display='grid';
+}
+
+// ============================
+// TASKS
+// ============================
+function renderTasks(){
+  const farms=getUserFarms();
+  const tasks=(ld(K.tasks)||[]).filter(t=>farms.some(f=>f.id===t.farmId));
+  const el=document.getElementById('taskList');
+  if(!tasks.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma tarefa criada.</div></div>';
+    return;
+  }
+  const pending=tasks.filter(t=>t.status==='pendente').length;
+  const badge=document.querySelectorAll('.taskBadge')[0]||document.getElementById('taskBadge');
+  if(pending>0){badge.textContent=pending;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+
+  el.innerHTML=tasks.map(t=>`
+    <div class="task-card" onclick="openTaskDetail('${t.id}')">
+      <div class="task-top">
+        <div class="task-title">${t.titulo}</div>
+        <span class="status-badge ${t.status==='concluida'?'sbadge-done':'sbadge-pend'}">${t.status==='concluida'?'Concluída':'Pendente'}</span>
+      </div>
+      <div class="task-meta">👤 ${t.responsavel} · ${fmtDate(t.createdAt)}</div>
+    </div>`).join('');
+}
+
+function styleCheckLabel(cb, lblId){
+  const lbl=document.getElementById(lblId);
+  if(!lbl)return;
+  if(cb.checked){
+    lbl.style.borderColor='var(--leaf)';
+    lbl.style.background='rgba(45,107,69,.08)';
+  } else {
+    lbl.style.borderColor='var(--border)';
+    lbl.style.background='var(--cream)';
+  }
+}
+
+function createTask(){
+  const titulo=document.getElementById('taskTitle').value.trim();
+  const farmId=document.getElementById('taskFarm').value;
+  const responsavel=document.getElementById('taskWorker').value.trim();
+  const desc=document.getElementById('taskDesc').value.trim();
+  if(!titulo||!farmId||!responsavel){showToast('⚠️ Preencha título, fazenda e responsável','amber');return;}
+
+  // Collect analysis types
+  const tipos=[];
+  if(document.getElementById('taskTypeAnimal')?.checked)tipos.push('animal');
+  if(document.getElementById('taskTypeCount')?.checked)tipos.push('contagem');
+  if(document.getElementById('taskTypePasto')?.checked)tipos.push('pasto');
+  if(!tipos.length){showToast('⚠️ Selecione pelo menos um tipo de análise','amber');return;}
+
+  const farm=(ld(K.farms)||[]).find(f=>f.id===farmId);
+  const task={id:uid(),titulo,farmId,responsavel,desc,tipos,status:'pendente',createdAt:Date.now(),results:null};
+  const tasks=ld(K.tasks)||[];
+  tasks.unshift(task);
+  sv(K.tasks,tasks);
+
+  // Reset form
+  document.getElementById('taskTitle').value='';
+  document.getElementById('taskWorker').value='';
+  document.getElementById('taskDesc').value='';
+  ['taskTypeAnimal','taskTypeCount','taskTypePasto'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.checked=false;
+  });
+  ['lbl-animal','lbl-count','lbl-pasto'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.style.borderColor='var(--border)';el.style.background='var(--cream)';}
+  });
+
+  closeModal('taskModal');
+  renderTasks();
+  openTaskDetail(task.id);
+}
+
+function openTaskModal(){
+  const farms=getUserFarms();
+  const sel=document.getElementById('taskFarm');
+  sel.innerHTML=farms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  openModal('taskModal');
+}
+
+function openTaskDetail(taskId){
+  const tasks=ld(K.tasks)||[];
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task)return;
+  const farm=(ld(K.farms)||[]).find(f=>f.id===task.farmId);
+  const farmName=farm?farm.name:'—';
+
+  // Generate link
+  const taskData=btoa(encodeURIComponent(JSON.stringify({
+    id:task.id,titulo:task.titulo,responsavel:task.responsavel,
+    desc:task.desc,fazenda:farmName,apiKey:getApiKey(),
+    tipos:task.tipos||['animal']
+  })));
+  const link=window.location.href.split('#')[0]+'#worker='+taskData;
+  const waMsg=encodeURIComponent(`Olá ${task.responsavel}! 👋\n\nVocê tem uma tarefa no *PecuárIA*:\n📋 *${task.titulo}*\n🏡 ${farmName}\n\n${task.desc?'📝 '+task.desc+'\n\n':''}Abra o link abaixo no celular para executar:\n${link}`);
+  const waURL=`https://wa.me/?text=${waMsg}`;
+
+  let body=`<div class="res-card" style="background:var(--cream)">
+    <table class="res-tbl">
+      <tr><td>Fazenda</td><td>${farmName}</td></tr>
+      <tr><td>Responsável</td><td>${task.responsavel}</td></tr>
+      <tr><td>Data</td><td>${fmtDate(task.createdAt)}</td></tr>
+      <tr><td>Status</td><td><span class="sbadge ${task.status==='concluida'?'sbadge-done':'sbadge-pend'}">${task.status==='concluida'?'Concluída':'Pendente'}</span></td></tr>
+    </table>
+  </div>
+  ${task.desc?`<div class="alert-box alert-blue" style="margin-bottom:14px">${task.desc}</div>`:''}
+  <div style="font-size:11px;font-weight:800;color:var(--text-mid);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📲 Enviar para o funcionário</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <a href="${waURL}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;text-decoration:none;box-shadow:0 4px 16px rgba(37,211,102,.35)">
+      <span>📱</span> WhatsApp
+    </a>
+    <button onclick="copyLink('taskLink${taskId}')" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--forest);border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(200,151,61,.3)">
+      📋 Copiar link
+    </button>
+  </div>
+  <div class="link-box" id="taskLink${taskId}">${link}</div>
+  <div class="alert-box alert-green" style="font-size:12px;margin-top:4px">O funcionário abre o link no celular → tira fotos → a IA analisa → relatório enviado de volta.</div>`;
+  if(task.status==='concluida'&&task.results){
+    const r=task.results;
+    body+=`<div class="res-card" style="margin-top:12px">
+      <h3 style="color:var(--leaf)">✅ Resultado</h3>
+      ${r.notas?`<p style="font-size:13px;color:var(--text-mid);margin:8px 0">${r.notas}</p>`:''}
+      <p style="font-size:12px;color:var(--text-light)">${r.analises?r.analises.length:0} análise(s) realizadas</p>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-sm btn-amber" onclick="generateTaskPDF('${taskId}')">📄 PDF</button>
+        <button class="btn-sm btn-red" onclick="deleteTask('${taskId}')">🗑️ Excluir</button>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('tdTitle').textContent=task.titulo;
+  document.getElementById('tdBody').innerHTML=body;
+  openModal('taskDetailModal');
+}
+
+function copyLink(elId){
+  const text=document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('📋 Link copiado!','green')).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    showToast('📋 Link copiado!','green');
+  });
+}
+
+function shareWhatsApp(elId, workerName){
+  const link=document.getElementById(elId).textContent.trim();
+  const name=workerName||'trabalhador';
+  const msg=`Olá ${name}! 👋
+
+Segue o link da sua tarefa no PecuárIA:
+${link}
+
+Abra pelo celular, realize as análises e envie o relatório. 🐄`;
+  const url='https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+function deleteTask(taskId){
+  if(!confirm('Excluir esta tarefa?'))return;
+  const tasks=(ld(K.tasks)||[]).filter(t=>t.id!==taskId);
+  sv(K.tasks,tasks);
+  closeModal('taskDetailModal');
+  renderTasks();
+}
+
+function generateTaskPDF(taskId){
+  const tasks=ld(K.tasks)||[];
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task||!task.results)return;
+  const farm=(ld(K.farms)||[]).find(f=>f.id===task.farmId);
+  const r=task.results;
+  const body=`<h3>Informações da Tarefa</h3>
+    <p><strong>Responsável:</strong> ${task.responsavel}</p>
+    <p><strong>Instruções:</strong> ${task.desc||'—'}</p>
+    <h3>Observações</h3><p>${r.notas||'Nenhuma observação.'}</p>
+    <h3>Análises</h3>`+
+    (r.analises||[]).map(a=>`<h4>${a.tipo}</h4>${formatResultTable(a.resultado)}`).join('');
+  openPDFWindow(task.titulo,farm?farm.name:'—',fmtDate(r.data||Date.now()),body);
+}
+
+// ============================
+// REPORTS
+// ============================
+function renderReports(){
+  const reports=(ld(K.reports)||[]).filter(r=>r.ownerId===currentUser.id);
+  const el=document.getElementById('reportList');
+  if(!reports.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-txt">Nenhum relatório salvo.</div></div>';
+    return;
+  }
+  el.innerHTML=reports.map(r=>`
+    <div class="rep-card">
+      <div class="rep-icon">${r.tipo==='contagem'?'📸':r.tipo==='identificacao'?'🏷️':'🌿'}</div>
+      <div class="rep-info">
+        <div class="rep-title">${r.titulo}</div>
+        <div class="rep-meta">${fmtDate(r.data)}</div>
+      </div>
+      <div class="rep-actions">
+        <button class="btn-sm btn-green" onclick="openReportDetail('${r.id}')">Ver</button>
+        <button class="btn-sm btn-amber" onclick="reportPDF('${r.id}')">PDF</button>
+        <button class="btn-sm btn-red" onclick="deleteReport('${r.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function openReportDetail(rId){
+  const reports=ld(K.reports)||[];
+  const r=reports.find(x=>x.id===rId);
+  if(!r)return;
+  document.getElementById('rdTitle').textContent=r.titulo;
+  const p=r.payload;
+  let body='';
+  if(r.tipo==='contagem'){
+    body=`<div class="res-card"><div style="text-align:center;padding:20px 0"><div style="font-size:72px;font-weight:900;color:var(--green);font-family:'Playfair Display',serif">${p.qtd}</div><div style="font-size:16px;color:var(--text-light)">animais identificados</div></div></div><div class="alert-box alert-blue">Confiança: ${p.confianca?.toUpperCase()} — ${p.desc}</div>`;
+  }else if(r.tipo==='identificacao'){
+    body=renderIdentifyResult(p);
+  }else if(r.tipo==='pastagem'){
+    const statusLabel={otimo:'Ótimo',bom:'Bom',atencao:'Atenção',critico:'Crítico'};
+    body=`<div class="res-card"><table class="res-tbl"><tr><td>Cobertura</td><td>${p.cobertura_pct}%</td></tr><tr><td>Status</td><td>${statusLabel[p.status]||p.status}</td></tr></table></div><div class="alert-box alert-green">${p.diagnostico}</div><div class="alert-box alert-blue">${p.recomendacao}</div>`;
+  }
+  document.getElementById('rdBody').innerHTML=body;
+  openModal('reportDetailModal');
+}
+
+function reportPDF(rId){
+  const reports=ld(K.reports)||[];
+  const r=reports.find(x=>x.id===rId);
+  if(!r)return;
+  const farm=(ld(K.farms)||[]).find(f=>f.id===r.farmId);
+  const p=r.payload;
+  let body='';
+  if(r.tipo==='contagem'){
+    body=`<div class="big">${p.qtd}</div><h3>Detalhes</h3><table><tr><th>Item</th><th>Valor</th></tr><tr><td>Quantidade</td><td>${p.qtd}</td></tr><tr><td>Confiança</td><td>${p.confianca?.toUpperCase()}</td></tr><tr><td>Observação</td><td>${p.desc}</td></tr></table>`;
+  }else if(r.tipo==='identificacao'){
+    body=`<h3>Resultado</h3><table><tr><th>Campo</th><th>Valor</th></tr>${Object.entries(p).filter(([k,v])=>v&&v!=='null').map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`;
+  }else if(r.tipo==='pastagem'){
+    body=`<h3>Avaliação</h3><table><tr><td>Cobertura</td><td>${p.cobertura_pct}%</td></tr><tr><td>Status</td><td>${p.status}</td></tr></table><h3>Diagnóstico</h3><p>${p.diagnostico}</p><h3>Recomendação</h3><p>${p.recomendacao}</p>`;
+  }
+  openPDFWindow(r.titulo,farm?farm.name:'Fazenda',fmtDate(r.data),body);
+}
+
+function deleteReport(rId){
+  if(!confirm('Excluir este relatório?'))return;
+  const reports=(ld(K.reports)||[]).filter(r=>r.id!==rId);
+  sv(K.reports,reports);
+  renderReports();
+}
+
+// ============================
+// CONFIG
+// ============================
+function renderConfig(){
+  if(!currentUser)return;
+  const farms=getUserFarms();
+  document.getElementById('cfgFarmList').innerHTML=farms.map(f=>{
+    const cnt=(ld(K.animals)||[]).filter(a=>a.farmId===f.id).length;
+    return`<div class="cfg-row"><span class="cfg-label">${f.name}</span><span class="cfg-val">🐄 ${cnt} animais</span></div>`;
+  }).join('');
+}
+
+function saveApiKey(){
+  const key=document.getElementById('apiKeyInput').value.trim();
+  if(!key.startsWith('sk-ant-')){alert('A chave deve começar com sk-ant-');return;}
+  try{
+    sv(K.settings,{apiKey:key});
+    const check=ld(K.settings);
+    if(check&&check.apiKey===key){showToast('✅ Chave API salva!','green');}
+    else{alert('⚠️ Erro ao salvar. Tente recarregar a página.');}
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// ============================
+// TASK MODAL INIT
+// ============================
+
+
+
+
+// ── TOAST NOTIFICATIONS ───────────────────────────
+function showToast(msg,type='green'){
+  const t=document.getElementById('toastMsg');
+  if(!t)return;
+  t.textContent=msg;
+  t.className='toast '+type;
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+
+
+// ── WORKER STEP ANALYSIS ────────────────────────
+function wStepPreview(input, tipo){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('wStepPrev_'+tipo);
+    const img=document.getElementById('wStepPrevImg_'+tipo);
+    if(prev&&img){
+      img.src=e.target.result;
+      prev.classList.remove('hidden');
+    }
+  };
+  reader.onerror=()=>showToast('❌ Erro ao ler imagem','red');
+  reader.readAsDataURL(file);
+}
+
+async function runStepAnalysis(tipo){
+  const camEl=document.getElementById('wStep'+tipo+'Camera');
+  const galEl=document.getElementById('wStep'+tipo+'Gallery');
+  const file=(camEl&&camEl.files[0])||(galEl&&galEl.files[0]);
+  if(!file){showToast('📷 Selecione ou tire uma foto primeiro','amber');return;}
+  const resultEl=document.getElementById('wStepResult_'+tipo);
+  if(resultEl)resultEl.innerHTML='<div class="alert-box alert-blue"><div class="spinner" style="border-top-color:var(--blue)"></div> Analisando...</div>';
+
+  const apiKey=workerTask.apiKey;
+  let system,label;
+  if(tipo==='animal'){
+    system='Você é um zootecnista especializado em bovinos do Brasil. Analise esta imagem com máxima precisão. Observe detalhes como conformação muscular, ossatura, couro, úbere (se fêmea), mucosas e condição corporal. RESPONDA SOMENTE com JSON válido sem markdown, sem texto extra: {"raca":"raça exata ou mais provável","categoria":"novilho|vaca|touro|bezerra|novilha|boi","sexo":"macho|femea","porte":"grande|medio|pequeno","peso_kg":numero_inteiro,"variacao_peso":"ex: 380-420kg","escore":numero_1a5,"padrao":"acima|dentro|abaixo","idade_estimada":"ex: 2-3 anos","aptidao":"corte|leite|dupla","recomendacao":"orientação prática em 1 frase","nutricao":"sugestão nutricional em 1 frase","possivel_doenca":"null ou observação clínica"}'
+    label='🏷️ Identificação de Animal';
+  }else if(tipo==='pasto'){
+    system='Você é um agrônomo especializado em pastagens do semiárido e cerrado brasileiro. Avalie esta imagem de pastagem com máxima precisão. RESPONDA SOMENTE com JSON válido sem markdown: {"cobertura_pct":numero_0a100,"status":"otimo|bom|atencao|critico","especie_provavel":"ex: Brachiaria brizantha, Panicum maximum","altura_estimada":"ex: 30-40cm","diagnostico":"diagnóstico em 1-2 frases","recomendacao":"recomendação prática em 1-2 frases","rotacao":true_ou_false,"prazo_rotacao":"ex: 7-10 dias ou null","adubacao":"sugestão ou null"}'
+    label='🌿 Avaliação de Pastagem';
+  }else{
+    system='Você é especialista em contagem de bovinos em imagens. Conte TODOS os animais visíveis, incluindo parcialmente visíveis. Se a foto não for aérea ou de cima do curral, ainda assim tente contar. RESPONDA SOMENTE com JSON válido sem markdown: {"quantidade":numero_inteiro,"confianca":"alta|media|baixa","descricao":"ex: 12 animais identificados, predominantemente Nelore","foto_adequada":true,"motivo_inadequada":"null ou motivo","animais_parciais":numero_inteiro}'
+    label='📸 Contagem de Rebanho';
+  }
+
+  try{
+    const b64=await fileToB64(file);
+    const raw=await callAPI([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:'Analise esta imagem.'}
+    ]}],system,apiKey);
+
+    const res=parseJSON(raw);
+    if(!res){
+      if(resultEl)resultEl.innerHTML='<div class="alert-box alert-red">❌ Não foi possível analisar. Tente outra foto com melhor ângulo.</div>';
+      return;
+    }
+    const dataURL=document.getElementById('wStepPrevImg_'+tipo)?.src||'';
+    workerAnalyses.push({tipo:label,data:Date.now(),resultado:res,foto:dataURL});
+    renderWorkerAnalyses();
+    if(resultEl)resultEl.innerHTML='<div class="alert-box alert-green">✅ Análise concluída! Veja o resultado abaixo.</div>';
+  }catch(e){
+    if(resultEl)resultEl.innerHTML=`<div class="alert-box alert-red">❌ ${e.message}</div>`;
+  }
+}
+
+
+function showFarmLoginLogo(logoSrc, farmName){
+  // Create overlay with farm logo on login
+  const div=document.createElement('div');
+  div.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(18,37,24,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeUp .3s ease';
+  div.innerHTML=`
+    <img src="${logoSrc}" style="width:120px;height:120px;border-radius:24px;object-fit:cover;box-shadow:0 8px 32px rgba(0,0,0,.4);margin-bottom:16px">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);font-weight:700">${farmName}</div>
+    <div style="color:rgba(247,242,232,.5);font-size:13px;margin-top:6px">Bem-vindo ao PecuárIA</div>`;
+  document.body.appendChild(div);
+  setTimeout(()=>{
+    div.style.transition='opacity .5s';
+    div.style.opacity='0';
+    setTimeout(()=>div.remove(),500);
+  },1800);
+}
+
+
+
+// ── API KEY STATUS ────────────────────────────────────────────────────────
+function renderApiKeyStatus(){
+  const key = getApiKey();
+  const statusEl = document.getElementById('apiKeyStatus');
+  const formEl = document.getElementById('apiKeyForm');
+  if(!statusEl||!formEl) return;
+  if(key){
+    const masked = key.slice(0,12)+'...'+key.slice(-4);
+    statusEl.innerHTML=`<div style="background:rgba(45,107,69,.12);border:1px solid rgba(45,107,69,.25);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><div style="font-size:14px;font-weight:800;color:var(--leaf)">🔑 Chave configurada</div><div style="font-size:11px;color:var(--text-light);margin-top:2px">${masked}</div></div>
+      <button onclick="showApiKeyForm()" style="background:rgba(45,107,69,.2);border:1px solid rgba(45,107,69,.3);color:var(--leaf);padding:6px 14px;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Alterar</button>
+    </div>`;
+    formEl.style.display='none';
+  } else {
+    statusEl.innerHTML='';
+    formEl.style.display='block';
+  }
+}
+
+function showApiKeyForm(){
+  const formEl = document.getElementById('apiKeyForm');
+  if(formEl) formEl.style.display='block';
+}
+
+// ── SIDEBAR MOBILE ──────────────────────────────
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sbOverlay').classList.add('active');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('active');
+}
+
+// ── INIT APP (single definition) ────────────────
+function initApp(user){
+  currentUser=user;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').classList.add('active');
+  const ini=user.name.charAt(0).toUpperCase();
+  // Show farm logo in sidebar avatar if available
+  const userFarms=(ld(K.farms)||[]).filter(f=>f.ownerId===user.id);
+  const firstLogo=userFarms.length&&userFarms[0].logo?userFarms[0].logo:null;
+  const avatarHtml=firstLogo?`<img src="${firstLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:ini;
+  const mobAvatarHtml=firstLogo?`<img src="${firstLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:ini;
+  if(document.getElementById('sbAvatar')) document.getElementById('sbAvatar').innerHTML=avatarHtml;
+  if(document.getElementById('mobAvatar')) document.getElementById('mobAvatar').innerHTML=mobAvatarHtml;
+  if(document.getElementById('sbUname')) document.getElementById('sbUname').textContent=user.name;
+  if(document.getElementById('cfgName')) document.getElementById('cfgName').textContent=user.name;
+  if(document.getElementById('cfgEmail')) document.getElementById('cfgEmail').textContent=user.email;
+  const apiKey=getApiKey();
+  if(apiKey && document.getElementById('apiKeyInput')) document.getElementById('apiKeyInput').value=apiKey;
+  renderHome();
+  showPage('home');
+}
+
+// ── BOOT (single definition) ─────────────────────
+async function boot(){
+  if(checkWorker())return;
+  // Clear any saved session — always require login
+  try{localStorage.removeItem(K.session);sessionStorage.removeItem(K.session);}catch(e){}
+  // Firebase auto-connect with timeout to prevent blocking login
+  try{
+    _fbInit();
+    if(_fbDb){
+      // Sync with 4s timeout — if slow, show login anyway
+      await Promise.race([
+        syncFromCloud(),
+        new Promise(res=>setTimeout(res,4000))
+      ]);
+    }
+  }catch(e){ console.warn('Boot sync error:',e.message); }
+  
+  // Always require login — never auto-login
+  document.getElementById('loginScreen').style.display='flex';
+}
+
+function showBootLoader(msg){
+  let el=document.getElementById('bootLoader');
+  if(!el){
+    el=document.createElement('div');
+    el.id='bootLoader';
+    el.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px';
+    el.innerHTML=`<div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--cream)">Pecuár<span style="color:var(--gold)">IA</span></div><div style="font-size:14px;color:rgba(247,242,232,.55)">${msg}</div><div style="width:40px;height:40px;border:3px solid rgba(200,151,61,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite"></div>`;
+    document.body.appendChild(el);
+  }
+}
+
+function hideBootLoader(){
+  const el=document.getElementById('bootLoader');
+  if(el){ el.style.opacity='0'; el.style.transition='opacity .4s'; setTimeout(()=>el.remove(),400); }
+}
+
+window.addEventListener('load',boot);
+</script>
+</body>
+</html>
